@@ -56,7 +56,7 @@ def apply_style():
             background:linear-gradient(180deg,#123B35 0%,#0E302C 100%);
             border-right:1px solid rgba(255,255,255,.08);
         }
-        section[data-testid='stSidebar'] * {color:#173B34;}
+        section[data-testid='stSidebar'] * {color:#F4FAF7;}
         section[data-testid='stSidebar'] .stCaption,
         section[data-testid='stSidebar'] small {color:#C5D9D1 !important;}
         section[data-testid='stSidebar'] hr {border-color:rgba(255,255,255,.17);}
@@ -72,7 +72,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stFileUploader'] label {
             font-weight:700;
-            color:#F4FAF7 !important;
+            color:#173B34 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stButton'] button {
             background:rgba(255,255,255,.11);
