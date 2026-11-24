@@ -56,9 +56,13 @@ def apply_style():
             background:linear-gradient(180deg,#123B35 0%,#0E302C 100%);
             border-right:1px solid rgba(255,255,255,.08);
         }
-        section[data-testid='stSidebar'] * {color:#F4FAF7;}
+        /* Set the sidebar's default text color without overriding widget internals. */
+        section[data-testid='stSidebar'] {color:#F4FAF7;}
         section[data-testid='stSidebar'] .stCaption,
-        section[data-testid='stSidebar'] small {color:#C5D9D1 !important;}
+        section[data-testid='stSidebar'] small,
+        section[data-testid='stSidebar'] [data-testid='stMarkdownContainer'] p {
+            color:#C5D9D1 !important;
+        }
         section[data-testid='stSidebar'] hr {border-color:rgba(255,255,255,.17);}
         section[data-testid='stSidebar'] [data-testid='stFileUploader'] {
             background:rgba(255,255,255,.08);
@@ -86,60 +90,68 @@ def apply_style():
             border-color:rgba(255,255,255,.4);
         }
 
-        /* Selectbox labels stay white; selected values use dark text. */
+        /* Sidebar selectboxes: light control surface with high-contrast dark selection text. */
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label p {
-            color:#173B34 !important;
+            color:#F4FAF7 !important;
+            font-weight:700 !important;
         }
-        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'],
-        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
-            background-color:#F7FBF9 !important;
-            color:#173B34 !important;
+        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] {
+            background:#FFFFFF !important;
+            border:1px solid #B8D3C8 !important;
             border-radius:10px !important;
             color-scheme:light !important;
         }
-        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] *,
+        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
+            background:#FFFFFF !important;
+            border-radius:10px !important;
+        }
+        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [role='combobox'],
+        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [role='combobox'] *,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] input,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] span {
             color:#173B34 !important;
             -webkit-text-fill-color:#173B34 !important;
             opacity:1 !important;
         }
-        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] svg {
+        section[data-testid='stSidebar'] [data-testid='stSelectbox'] svg {
             fill:#173B34 !important;
             color:#173B34 !important;
         }
+        section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select']:focus-within {
+            outline:2px solid #D7A33D !important;
+            outline-offset:1px !important;
+        }
 
-        /* Streamlit/BaseWeb dropdown popovers are mounted outside the sidebar. */
-        body div[data-baseweb='popover'],
-        body div[data-baseweb='popover'] ul,
-        body div[data-baseweb='menu'],
-        body ul[data-testid='stSelectboxVirtualDropdown'] {
-            background-color:#FFFFFF !important;
+        /* Dropdown menu is rendered in a portal outside the sidebar DOM. */
+        body [data-baseweb='popover'],
+        body [data-baseweb='popover'] [role='listbox'],
+        body [data-baseweb='menu'] {
+            background:#FFFFFF !important;
             color:#173B34 !important;
             color-scheme:light !important;
         }
-        body div[data-baseweb='popover'] [role='listbox'],
-        body div[data-baseweb='popover'] [role='option'],
-        body div[data-baseweb='popover'] [role='option'] *,
-        body div[data-baseweb='menu'] [role='option'],
-        body div[data-baseweb='menu'] [role='option'] *,
+        body [data-baseweb='popover'] [role='option'],
+        body [data-baseweb='popover'] [role='option'] *,
+        body [data-baseweb='menu'] [role='option'],
+        body [data-baseweb='menu'] [role='option'] *,
         body ul[data-testid='stSelectboxVirtualDropdown'] li,
         body ul[data-testid='stSelectboxVirtualDropdown'] li * {
             color:#173B34 !important;
             -webkit-text-fill-color:#173B34 !important;
             opacity:1 !important;
         }
-        body div[data-baseweb='popover'] [role='option']:hover,
-        body div[data-baseweb='menu'] [role='option']:hover,
+        body [data-baseweb='popover'] [role='option']:hover,
+        body [data-baseweb='menu'] [role='option']:hover,
         body ul[data-testid='stSelectboxVirtualDropdown'] li:hover {
-            background-color:#E8F4EF !important;
+            background:#E8F4EF !important;
         }
-        body div[data-baseweb='popover'] [role='option'][aria-selected='true'],
-        body div[data-baseweb='menu'] [role='option'][aria-selected='true'],
+        body [data-baseweb='popover'] [role='option'][aria-selected='true'],
+        body [data-baseweb='menu'] [role='option'][aria-selected='true'],
         body ul[data-testid='stSelectboxVirtualDropdown'] li[aria-selected='true'] {
-            background-color:#DDEFE7 !important;
+            background:#DDEFE7 !important;
             color:#123B35 !important;
+            font-weight:700 !important;
         }
 
         /* Sidebar navigation */
