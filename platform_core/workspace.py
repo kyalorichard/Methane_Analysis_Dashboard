@@ -89,7 +89,7 @@ def list_datasets(tenant_id: str, project_id: str, subject: str):
     with tenant_session(tenant_id) as session:
         uid=_user_id(session,subject)
         _assert_project_access(session,tenant_id,project_id,uid,write=False)
-        rows=session.execute(text('SELECT id::text,name,species,file_format,row_count,created_at,sha256 FROM datasets WHERE tenant_id=:tid AND project_id=:pid ORDER BY created_at DESC'),{'tid':tenant_id,'pid':project_id}).mappings().all()
+        rows=session.execute(text('SELECT id::text,name,species,file_format,row_count,created_at,sha256,source_format,protocol_json,qc_summary,schema_json FROM datasets WHERE tenant_id=:tid AND project_id=:pid ORDER BY created_at DESC'),{'tid':tenant_id,'pid':project_id}).mappings().all()
     return [dict(r) for r in rows]
 
 
@@ -108,3 +108,52 @@ def load_dataset(tenant_id: str, project_id: str, dataset_id: str, subject: str)
     elif ext in {'xlsx','xls'}: df=pd.read_excel(BytesIO(raw))
     else: df=pd.read_csv(BytesIO(raw))  # backward compatibility for pre-migration datasets
     return df,row['name'],row['species']
+
+
+def get_project(tenant_id: str, project_id: str, subject: str):
+    """Return project metadata after enforcing tenant/project read access."""
+    with tenant_session(tenant_id) as session:
+        uid=_user_id(session,subject)
+        _assert_project_access(session,tenant_id,project_id,uid,write=False)
+        row=session.execute(text("SELECT id::text,name,species,description,created_at FROM projects WHERE tenant_id=:tid AND id=:pid"),{'tid':tenant_id,'pid':project_id}).mappings().first()
+    if not row: raise PermissionError('Project is not available in this tenant.')
+    return dict(row)
+
+def duplicate_project(tenant_id: str, subject: str, source_project_id: str, new_name: str):
+    """Create an independent project copy, including stored datasets and protocol metadata."""
+    source=get_project(tenant_id,source_project_id,subject)
+    new_id=create_project(tenant_id,subject,new_name,source['species'],f"Copy of {source['name']}. {source.get('description') or ''}".strip())
+    try:
+        for item in list_datasets(tenant_id,source_project_id,subject):
+            df,filename,species=load_dataset(tenant_id,source_project_id,item['id'],subject)
+            protocol=item.get('protocol_json') or {}
+            # Preserve the scientific table and protocol; storage receives a new immutable object.
+            raw=dataframe_to_parquet_bytes(df)
+            save_dataset(tenant_id,subject,new_id,filename,raw,df,species,protocol)
+    except Exception:
+        # Keep a clearly named partial copy rather than deleting data without a separate audit trail.
+        raise RuntimeError(f'Project copy {new_id} was created but dataset replication failed. Review the partial project before retrying.')
+    return new_id
+
+
+def create_project_version(tenant_id: str, subject: str, project_id: str, note: str = ""):
+    """Record an immutable metadata/dataset-manifest checkpoint for a project."""
+    with tenant_session(tenant_id) as session:
+        uid=_user_id(session,subject)
+        _assert_project_access(session,tenant_id,project_id,uid,write=True)
+        project=session.execute(text("SELECT id::text,name,species,description FROM projects WHERE tenant_id=:tid AND id=:pid"),{'tid':tenant_id,'pid':project_id}).mappings().first()
+        if not project: raise PermissionError('Project is not available.')
+        datasets=session.execute(text("SELECT id::text,name,species,file_format,row_count,sha256,protocol_json FROM datasets WHERE tenant_id=:tid AND project_id=:pid ORDER BY created_at"),{'tid':tenant_id,'pid':project_id}).mappings().all()
+        version=int(session.execute(text("SELECT COALESCE(MAX(version_number),0)+1 FROM project_versions WHERE tenant_id=:tid AND project_id=:pid"),{'tid':tenant_id,'pid':project_id}).scalar_one())
+        snapshot={'project':dict(project),'datasets':[dict(x) for x in datasets],'note':note,'snapshot_type':'metadata_and_dataset_manifest'}
+        session.execute(text("INSERT INTO project_versions(tenant_id,project_id,version_number,snapshot_json,created_by) VALUES (:tid,:pid,:version,CAST(:snapshot AS jsonb),:uid)"),{'tid':tenant_id,'pid':project_id,'version':version,'snapshot':json.dumps(snapshot,default=str),'uid':uid})
+        session.execute(text("INSERT INTO audit_events(tenant_id,user_id,action,resource_type,resource_id,details) VALUES (:tid,:uid,'project.version.created','project',:pid,CAST(:details AS jsonb))"),{'tid':tenant_id,'uid':uid,'pid':project_id,'details':json.dumps({'version':version,'note':note})})
+    return version
+
+
+def list_project_versions(tenant_id: str, subject: str, project_id: str):
+    with tenant_session(tenant_id) as session:
+        uid=_user_id(session,subject)
+        _assert_project_access(session,tenant_id,project_id,uid,write=False)
+        rows=session.execute(text("SELECT version_number,snapshot_json,created_at FROM project_versions WHERE tenant_id=:tid AND project_id=:pid ORDER BY version_number DESC"),{'tid':tenant_id,'pid':project_id}).mappings().all()
+    return [dict(x) for x in rows]

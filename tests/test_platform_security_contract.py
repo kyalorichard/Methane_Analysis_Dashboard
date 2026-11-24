@@ -9,7 +9,7 @@ def test_production_auth_fails_closed_without_tenant_headers():
 
 def test_rls_is_forced_for_tenant_tables():
     sql=(ROOT/'database'/'schema.sql').read_text()
-    for table in ['projects','project_memberships','datasets','analysis_runs','audit_events']:
+    for table in ['projects','project_memberships','datasets','analysis_runs','audit_events','project_versions']:
         assert f'ALTER TABLE {table} FORCE ROW LEVEL SECURITY' in sql
 
 def test_species_module_exists():

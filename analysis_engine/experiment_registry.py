@@ -72,3 +72,34 @@ def get_experiment(experiment_id, user_scope):
         row=con.execute("SELECT project_scope,species_scope,experiment_name,created_at,config_json,metrics_json,paired_json,metadata_json FROM experiments WHERE experiment_id=? AND user_scope=?",(str(experiment_id),str(user_scope))).fetchone()
     if not row: return None
     return {"project_scope":row[0],"species_scope":row[1],"experiment_name":row[2],"created_at":row[3],"config":json.loads(row[4]),"metrics":json.loads(row[5]),"paired_comparisons":json.loads(row[6]),"metadata":json.loads(row[7])}
+
+
+def export_project_state(user_scope, project_scope):
+    """Export local settings and experiment metadata for one user/project scope."""
+    with closing(_connect()) as con:
+        settings = con.execute(
+            "SELECT species_scope,payload,updated_at FROM scoped_settings WHERE user_scope=? AND project_scope=?",
+            (str(user_scope), str(project_scope)),
+        ).fetchall()
+        experiments = con.execute(
+            "SELECT species_scope,experiment_name,created_at,config_json,metrics_json,paired_json,metadata_json FROM experiments WHERE user_scope=? AND project_scope=? ORDER BY created_at",
+            (str(user_scope), str(project_scope)),
+        ).fetchall()
+    return {
+        "settings": [{"species_scope": r[0], "payload": json.loads(r[1]), "updated_at": r[2]} for r in settings],
+        "experiments": [{"species_scope": r[0], "name": r[1], "created_at": r[2], "config": json.loads(r[3]), "metrics": json.loads(r[4]), "paired_comparisons": json.loads(r[5]), "metadata": json.loads(r[6])} for r in experiments],
+    }
+
+
+def import_project_state(user_scope, project_scope, state):
+    """Restore portable settings and experiment metadata under the destination scope."""
+    stamp = datetime.now(timezone.utc).isoformat()
+    with closing(_connect()) as con:
+        for item in state.get("settings", []):
+            con.execute(
+                "INSERT INTO scoped_settings VALUES (?,?,?,?,?) ON CONFLICT(user_scope,project_scope,species_scope) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",
+                (str(user_scope), str(project_scope), str(item.get("species_scope", "all")), json.dumps(item.get("payload", {}), sort_keys=True), stamp),
+            )
+        for item in state.get("experiments", []):
+            save_experiment(user_scope, project_scope, item.get("species_scope", "all"), item.get("name", "Imported experiment"), item.get("config", {}), item.get("metrics", {}), item.get("paired_comparisons", []), {**(item.get("metadata") or {}), "imported_from_archive": True, "original_created_at": item.get("created_at")})
+        con.commit()

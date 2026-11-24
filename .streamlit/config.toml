@@ -1,5 +1,6 @@
 [server]
 headless = true
+maxUploadSize = 200
 address = "0.0.0.0"
 
 [theme]

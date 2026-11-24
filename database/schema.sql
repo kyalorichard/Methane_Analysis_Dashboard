@@ -72,3 +72,16 @@ CREATE POLICY tenant_project_memberships ON project_memberships USING(tenant_id=
 CREATE POLICY tenant_datasets ON datasets USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 CREATE POLICY tenant_runs ON analysis_runs USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 CREATE POLICY tenant_audit ON audit_events USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
+
+-- Immutable project lifecycle snapshots (metadata and dataset manifest; dataset bytes remain in S3).
+CREATE TABLE IF NOT EXISTS project_versions (
+ id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id UUID NOT NULL, project_id UUID NOT NULL,
+ version_number INTEGER NOT NULL, snapshot_json JSONB NOT NULL,
+ created_by UUID REFERENCES users(id), created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ FOREIGN KEY(tenant_id,project_id) REFERENCES projects(tenant_id,id) ON DELETE CASCADE,
+ UNIQUE(tenant_id,project_id,version_number)
+);
+ALTER TABLE project_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_versions FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_project_versions ON project_versions USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
+CREATE INDEX IF NOT EXISTS idx_project_versions ON project_versions(tenant_id,project_id,version_number DESC);
