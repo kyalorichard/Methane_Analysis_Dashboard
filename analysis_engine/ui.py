@@ -33,8 +33,20 @@ def apply_style():
     section[data-testid='stSidebar'] [data-testid='stFileUploader'] label {font-weight:700;color:#F4FAF7 !important;}
     section[data-testid='stSidebar'] [data-testid='stButton'] button {background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.20);color:white;border-radius:10px;font-weight:700;}
     section[data-testid='stSidebar'] [data-testid='stButton'] button:hover {background:rgba(255,255,255,.19);border-color:rgba(255,255,255,.4);}
-    section[data-testid='stSidebar'] [data-testid='stSelectbox'] div[data-baseweb='select'] > div {background:#F7FBF9;color:#173B34;border-radius:10px;}
-    section[data-testid='stSidebar'] [data-testid='stSelectbox'] div[data-baseweb='select'] * {color:#173B34 !important;}
+    /* Sidebar select controls: retain white labels, but use dark text inside
+       the light select field and its dropdown menu for readable contrast. */
+    section[data-testid='stSidebar'] [data-testid='stSelectbox'] label {color:#F4FAF7 !important;}
+    section[data-testid='stSidebar'] [data-testid='stSelectbox'] div[data-baseweb='select'] > div {background:#F7FBF9 !important;color:#173B34 !important;border-radius:10px;}
+    section[data-testid='stSidebar'] [data-testid='stSelectbox'] div[data-baseweb='select'] *,
+    section[data-testid='stSidebar'] [data-testid='stSelectbox'] div[data-baseweb='select'] input {color:#173B34 !important;-webkit-text-fill-color:#173B34 !important;}
+    /* BaseWeb renders dropdown popovers outside the sidebar DOM. */
+    div[data-baseweb='popover'] [role='listbox'],
+    div[data-baseweb='popover'] [role='option'],
+    div[data-baseweb='popover'] [role='option'] *,
+    ul[data-testid='stSelectboxVirtualDropdown'] li {color:#173B34 !important;-webkit-text-fill-color:#173B34 !important;}
+    div[data-baseweb='popover'] [role='listbox'] {background:#FFFFFF !important;}
+    div[data-baseweb='popover'] [role='option']:hover {background:#E8F4EF !important;}
+    div[data-baseweb='popover'] [aria-selected='true'] {background:#DDEFE7 !important;color:#123B35 !important;}
     [data-testid='stSidebarNav'] {padding-top:.35rem;}
     [data-testid='stSidebarNav'] a {border-radius:9px;margin:2px 7px;padding:7px 10px;transition:background .15s ease;}
     [data-testid='stSidebarNav'] a:hover {background:rgba(255,255,255,.12);}
