@@ -1,0 +1,2 @@
+# Optional explainable-AI extension. Install only when SHAP workflows are enabled.
+shap>=0.46

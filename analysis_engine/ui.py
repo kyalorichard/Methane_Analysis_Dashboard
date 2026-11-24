@@ -640,6 +640,8 @@ def render_sidebar_navigation():
                 ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"),
                 ("Model explainability", "pages/09_Explainability.py", "💡"),
                 ("Advanced analysis", "pages/11_Advanced_Analysis.py", "🧪"),
+                ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧬"),
+                ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"),
                 ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
                 ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
             ]),
@@ -653,6 +655,7 @@ def render_sidebar_navigation():
                 ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"),
                 ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
                 ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
+                    ("Advanced ML & explainability", "pages/34_Advanced_ML_Explainability.py", "🤖"),
             ]),
         ]
         for group, links in groups:

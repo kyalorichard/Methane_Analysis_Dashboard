@@ -103,3 +103,40 @@ This update adds a connected research command centre while retaining the existin
 - Nested grouped CV reduces leakage from repeated animal records but does not replace external validation or independent cohort testing.
 - Analysis-run comparison only compares fields retained in the manifests and summaries.
 - A dataset-aware generative AI assistant, full consensus-clustering stability workflow, UMAP, GAM/quantile/allometric model catalogue and automated external validation are not implemented as validated features in this release. Existing modules may support parts of these analyses, but do not interpret a navigation entry as proof of method validation.
+
+## Release 5.0 — Advanced Research Edition
+
+Release 5.0 adds a unified Advanced Research Analytics module for spline-additive modelling, random-intercept mixed models, variance decomposition, within-animal trajectory slopes, multi-trait associations, and held-out prediction diagnostics. It retains the Release 1–4 research intelligence, nested grouped ML validation, provenance, run registry, species adapters, and publication workflows. See `docs/RELEASE_5_ADVANCED_RESEARCH_EDITION.md` for methods, limitations and validation instructions.
+
+## Release 5.1 — Advanced inference and scaling
+
+Release 5.1 adds an **Advanced inference & scaling** page (`pages/31_Advanced_Inference.py`) with conditional quantile regression, log-log allometric scaling and an animal-level cluster bootstrap contrast. The bootstrap first aggregates repeated records to animal-level means and resamples animals within the selected groups. These methods have explicit assumptions and limitations; see `docs/RELEASE_5_1_ADVANCED_INFERENCE.md`.
+
+## Release 6.0 — Complete Research Edition
+
+Release 6.0 consolidates the prior platform releases into one integrated application. See `docs/RELEASE_6_COMPLETE_RESEARCH_EDITION.md` for implemented capabilities, scientific boundaries, validation evidence and remaining deployment gates. The Release 6 research integration page adds dataset integrity reporting, random-slope mixed models, consensus clustering and reproducibility manifests.
+
+
+## Release 6.1 — Reliability and Measurement Agreement
+
+Release 6.1 adds ICC(1)/ICC(2)/ICC(3) single- and average-measure reliability estimates with subject-level bootstrap confidence intervals, within/between-subject variance decomposition, and Bland–Altman paired-method agreement analysis. See `docs/RELEASE_6_1_RELIABILITY_AND_AGREEMENT.md` and Streamlit page `33_Reliability_and_Agreement.py`.
+
+## Release 6.2 — Advanced ML validation and explainable AI
+
+Release 6.2 adds a consolidated Advanced ML & Explainability page (`pages/34_Advanced_ML_Explainability.py`) for grouped learning curves, group-bootstrap feature-selection stability, optional SHAP explanations, group-split conformal prediction intervals, conventional OLS-versus-ML benchmarking, frozen-model external cohort validation, and animal-grouped classification metrics. See `docs/RELEASE_6_2_ADVANCED_ML_EXPLAINABILITY.md` for assumptions and remaining limitations. Classification probability recalibration and comprehensive out-of-fold calibration diagnostics remain partial rather than complete.
+
+
+Release 6.2 requirement-by-requirement status and the Release 6.3+ backlog are documented in `docs/RELEASE_6_2_ADVANCED_ML_EXPLAINABILITY.md`. The release is an incremental research-workflow integration, not a claim that every advanced ML requirement is complete.
+
+
+## Release 6.3 — Classification validation and external assessment
+
+Release 6.3 adds nested stratified group cross-validation for classification, inner-fold hyperparameter tuning, cross-fitted sigmoid probability calibration, multiclass out-of-fold probability exports, discrimination and calibration metrics, and frozen-model external classification assessment. See `docs/RELEASE_6_3_CLASSIFICATION_VALIDATION.md` for methods, assumptions and remaining limitations.
+
+## Release 6.4 — External validation and transportability
+
+Release 6.4 adds an external cohort schema/identifier audit and predictor distribution-shift diagnostics to page 34, plus reusable cluster-bootstrap confidence intervals and paired model-error comparisons in `analysis_engine/transportability.py`. These are screening and uncertainty tools; they do not certify cohort independence or measurement harmonisation. See `docs/RELEASE_6_4_TRANSPORTABILITY_BENCHMARKING.md` for the recommended protocol and interpretation boundaries.
+
+
+## Release 6.5 — Multi-study harmonisation and meta-analysis
+Release 6.5 adds explicit study-level phenotype mapping and provenance, user-specified unit conversion, protocol comparability auditing, and DerSimonian–Laird random-effects synthesis of supplied independent study effects. The workflow is available in `pages/35_Multi_Study_Harmonisation_Meta_Analysis.py`. Cross-species pooling is not automatic: phenotype definition, units, measurement method, instrument, calibration and estimand must be justified. See `docs/RELEASE_6_5_MULTI_STUDY_HARMONISATION.md`.

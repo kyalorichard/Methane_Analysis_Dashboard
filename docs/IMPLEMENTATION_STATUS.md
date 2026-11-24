@@ -21,3 +21,20 @@ Do not deploy to production until Entra proxy configuration is tested, identity 
 ## Streamlit-first increment v4
 
 Added a dedicated Scientific Analysis Workbench page with runnable exploratory workflows for one-way ICC(1,1)/ICC(1,k), animal-level bootstrap intervals, Bland–Altman paired agreement, Welch/Kruskal group comparisons with BH-adjusted pairwise tests, log-log allometry, quantile regression, recording-duration threshold sensitivity, independent-group TOST, and bootstrap cluster stability. The page also exports a JSON analysis manifest and active dataset Parquet. These are not a substitute for prespecified study protocols, mixed-effects variance component models, nested grouped validation, or independent external validation.
+
+## Release 5.0 — Advanced Research Edition
+
+| Capability | Status | Notes |
+|---|---|---|
+| Platform hardening and regression tests | Implemented baseline + extended unit tests | Browser and deployment-environment checks remain required |
+| Spline-additive regression | Implemented | B-spline basis expansion with HC3 covariance; not penalised GAM |
+| Random-intercept mixed models | Implemented | Animal/herd/site grouping; model diagnostics remain researcher responsibility |
+| Variance components | Implemented | Between-group and residual variance; not heritability |
+| Animal-level longitudinal slopes | Implemented | Descriptive per-animal OLS slopes; not population-level longitudinal inference |
+| Multi-trait correlation | Implemented | Pairwise sample sizes and BH-FDR adjustment |
+| Prediction diagnostics | Implemented | Must use held-out or out-of-fold predictions |
+| Grouped ML validation, repeatability, allometry, quantile regression, clustering stability | Retained from baseline | See module-specific documentation and warnings |
+| Genomic association and genotype integration | Not implemented | Requires genotype data contracts and dedicated statistical design |
+| Penalised GAM / GAMM | Not implemented | Requires a validated smoothing and inference implementation |
+| AI scientific assistant | Not implemented | Requires governed, dataset-grounded evidence retrieval and auditability |
+| External validation orchestration | Framework-level support only | Independent external data and protocol-specific design are required |
