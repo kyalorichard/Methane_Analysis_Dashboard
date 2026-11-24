@@ -94,15 +94,15 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'],
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
             background-color:#F7FBF9 !important;
-            color:black !important;
+            color:#173B34 !important;
             border-radius:10px !important;
             color-scheme:light !important;
         }
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] *,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] input,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] span {
-            color:#173B34 !important;
-            -webkit-text-fill-color:#173B34 !important;
+            color:black !important;
+            -webkit-text-fill-color:black !important;
             opacity:1 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] svg {
