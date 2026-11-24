@@ -196,7 +196,12 @@ def progress_step(label, complete, detail=""):
 
 
 def render_sidebar_navigation():
-    """Render the same curated navigation and workspace context on every multipage view."""
+    """Apply the Overview visual system and render shared navigation on every page."""
+    # Streamlit executes each multipage script independently. Reapply the shared
+    # stylesheet here so every page receives the same sidebar, typography, cards,
+    # controls, and page-heading treatment as the Overview.
+    apply_style()
+
     with st.sidebar:
         st.markdown(
             "<div class='brand-lockup'><div class='brand-mark'>M</div><div>"
