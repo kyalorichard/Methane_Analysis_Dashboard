@@ -72,7 +72,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stFileUploader'] label {
             font-weight:700;
-            color:black !important;
+            color:#F4FAF7 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stButton'] button {
             background:rgba(255,255,255,.11);
@@ -94,7 +94,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'],
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
             background-color:#F7FBF9 !important;
-            color:#173B34 !important;
+            color:black !important;
             border-radius:10px !important;
             color-scheme:light !important;
         }
