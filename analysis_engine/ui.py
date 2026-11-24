@@ -89,7 +89,7 @@ def apply_style():
         /* Selectbox labels stay white; selected values use dark text. */
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label p {
-            color:#F4FAF7 !important;
+            color:#173B34 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'],
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
