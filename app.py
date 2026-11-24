@@ -27,6 +27,33 @@ if os.getenv('AUTH_MODE','development').lower() == 'entra_proxy':
 
 DATA_PATH=Path(__file__).parent/'data'/'ICARDA_sheep_methane_phenotypes.csv'
 
+def progress_step(label, completed, description=""):
+    """Display an analysis-readiness step in the sidebar."""
+    icon = "✓" if completed else "○"
+    status = "Complete" if completed else "Pending"
+
+    with st.container():
+        col1, col2 = st.columns([0.12, 0.88])
+
+        with col1:
+            st.markdown(
+                f"<div style='font-size:18px;color:"
+                f"{'#16A34A' if completed else '#9CA3AF'};"
+                f"font-weight:700'>{icon}</div>",
+                unsafe_allow_html=True
+            )
+
+        with col2:
+            st.markdown(
+                f"**{label}**  "
+                f"<span style='font-size:11px;color:"
+                f"{'#16A34A' if completed else '#9CA3AF'}'>"
+                f"{status}</span>",
+                unsafe_allow_html=True
+            )
+            if description:
+                st.caption(description)
+
 def activate(df,name,species='Sheep'):
     st.session_state['data']=df
     st.session_state['raw_data_snapshot']=df.copy(deep=True)
