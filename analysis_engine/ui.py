@@ -75,8 +75,8 @@ def apply_style():
             color:#F4FAF7 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stButton'] button {
-            background:rgba(255,255,255,.11);
-            border:1px solid rgba(255,255,255,.20);
+            background:rgba(255,255,255,.19);
+            border:1px solid rgba(255,255,255,.4);
             color:white;
             border-radius:10px;
             font-weight:700;
@@ -115,7 +115,7 @@ def apply_style():
         body div[data-baseweb='popover'] ul,
         body div[data-baseweb='menu'],
         body ul[data-testid='stSelectboxVirtualDropdown'] {
-            background-color:#DDEFE7 !important;
+            background-color:#FFFFFF !important;
             color:#173B34 !important;
             color-scheme:light !important;
         }
