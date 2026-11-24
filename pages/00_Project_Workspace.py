@@ -6,6 +6,7 @@ from analysis_engine.ui import header, metric_row, render_sidebar_navigation
 from platform_core.auth import require_principal
 from platform_core.database import configured
 from platform_core import local_workspace
+from platform_core import workspace as cloud_workspace
 from platform_core.workspace import (
     list_projects, create_project, save_dataset, list_datasets, load_dataset,
     get_project, duplicate_project, create_project_version, list_project_versions,
@@ -24,6 +25,7 @@ _backend = __import__('os').getenv('PROJECT_STORAGE_BACKEND', 'cloud' if (config
 if _backend not in {'local', 'cloud'}:
     st.error("PROJECT_STORAGE_BACKEND must be 'local' or 'cloud'.")
     st.stop()
+store = local_workspace if _backend == 'local' else cloud_workspace
 if _backend == 'local':
     list_projects, create_project, save_dataset, list_datasets, load_dataset, get_project, duplicate_project, create_project_version, list_project_versions = (
         local_workspace.list_projects, local_workspace.create_project, local_workspace.save_dataset,
