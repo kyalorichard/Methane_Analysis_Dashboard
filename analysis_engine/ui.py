@@ -77,7 +77,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stButton'] button {
             background:rgba(255,255,255,.11);
             border:1px solid rgba(255,255,255,.20);
-            color:white;
+            color:black;
             border-radius:10px;
             font-weight:700;
         }
@@ -89,7 +89,7 @@ def apply_style():
         /* Selectbox labels stay white; selected values use dark text. */
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label p {
-            color:#173B34 !important;
+            color:black !important;
         }
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'],
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
@@ -361,7 +361,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stPageLink'] a {
             border-radius:9px;
             padding:7px 9px;
-            color:#173B34 !important;
+            color:#F4FAF7 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stPageLink'] a:hover {
             background:rgba(255,255,255,.12);
