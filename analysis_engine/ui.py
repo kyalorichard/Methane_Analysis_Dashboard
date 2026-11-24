@@ -170,6 +170,28 @@ def apply_style():
         }
         [data-testid='stSidebarNav'] span {font-size:.88rem;}
 
+        /* Compact grouped navigation */
+        section[data-testid='stSidebar'] [data-testid='stExpander'] {
+            background:rgba(255,255,255,.055);
+            border:1px solid rgba(255,255,255,.13);
+            border-radius:10px;
+            margin:5px 0;
+        }
+        section[data-testid='stSidebar'] [data-testid='stExpander'] summary {
+            color:#F4FAF7 !important;
+            font-size:.78rem;
+            font-weight:800;
+            letter-spacing:.035em;
+        }
+        section[data-testid='stSidebar'] [data-testid='stExpander'] [data-testid='stPageLink'] a {
+            color:#E8F4EF !important;
+            border-radius:8px;
+            padding:5px 7px;
+        }
+        section[data-testid='stSidebar'] [data-testid='stExpander'] [data-testid='stPageLink'] a:hover {
+            background:rgba(255,255,255,.12);
+        }
+
         /* Metrics, tables, charts and controls */
         div[data-testid='stMetric'] {
             background:var(--surface);
@@ -597,157 +619,59 @@ def progress_step(label, complete, detail=""):
 
 
 def render_sidebar_navigation():
-    """Apply shared styling and render navigation on every Streamlit page."""
-    # Each multipage script executes independently, so apply the shared
-    # stylesheet here on every page.
+    """Render compact, consistently grouped navigation on every Streamlit page."""
     apply_style()
-
     with st.sidebar:
-        st.markdown(
-            "<div class='brand-lockup'><div class='brand-mark'>M</div><div>"
-            "<div class='brand-name'>Methane Phenotype<br>Analytics</div>"
-            "<div class='brand-sub'>ICARDA research workspace</div></div></div>",
-            unsafe_allow_html=True,
-        )
-
+        st.markdown("<div class='brand-lockup'><div class='brand-mark'>M</div><div><div class='brand-name'>Methane Phenotype<br>Analytics</div><div class='brand-sub'>ICARDA research workspace</div></div></div>", unsafe_allow_html=True)
         groups = [
-            ("WORKSPACE", [
-                ("Overview", "app.py", "🏠"),
-                ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"),
-                ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"),
-                ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"),
-                ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪"),
-            ]),
-            ("DATA & MEASUREMENT", [
-                ("Data management & QC", "pages/01_Data_Management.py", "🧹"),
-                ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
-                ("Species & protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
-                ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
-            ]),
-            ("PHENOTYPE DISCOVERY & VALIDATION", [
-                ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"),
-                ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬"),
-                ("Repeatability & reliability", "pages/07_Repeatability_Reliability.py", "🔁"),
-                ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
-                ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
-                ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"),
-                ("Low / high emitters", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
-            ]),
-            ("STATISTICS, ML & MULTIVARIATE", [
-                ("Statistical models", "pages/03_Statistical_Models.py", "📐"),
-                ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"),
-                ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
-                ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"),
-                ("Model explainability", "pages/09_Explainability.py", "💡"),
-                ("Advanced analysis", "pages/11_Advanced_Analysis.py", "🧪"),
-                ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧬"),
-                ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"),
-                ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
-                ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
-            ]),
-            ("LONGITUDINAL ANALYSIS", [
-                ("Longitudinal analysis", "pages/10_Longitudinal_Analysis.py", "🗓️"),
-                ("Emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"),
-            ]),
-            ("RESEARCH OUTPUTS & GOVERNANCE", [
-                ("Reports & exports", "pages/15_Reports_Exports.py", "📄"),
-                ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
-                ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"),
-                ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
-                ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
-                    ("Advanced ML & explainability", "pages/34_Advanced_ML_Explainability.py", "🤖"),
-            ]),
+            ("01 · WORKSPACE", [("Overview", "app.py", "🏠"), ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"), ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"), ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"), ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪")]),
+            ("02 · DATA & PHENOTYPING", [("Data management & QC", "pages/01_Data_Management.py", "🧹"), ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"), ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"), ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"), ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"), ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬")]),
+            ("03 · PHENOTYPE EVIDENCE", [("Repeatability & reliability", "pages/07_Repeatability_Reliability.py", "🔁"), ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"), ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"), ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"), ("Low / high emitters", "pages/18_Low_High_Emitter_Reports.py", "↕️")]),
+            ("04 · STATISTICS & MACHINE LEARNING", [("Statistical models", "pages/03_Statistical_Models.py", "📐"), ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"), ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"), ("Advanced ML validation & explainability", "pages/34_Advanced_ML_Explainability.py", "💡"), ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"), ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"), ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"), ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"), ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️")]),
+            ("05 · LONGITUDINAL & MULTI-STUDY", [("Longitudinal analysis", "pages/10_Longitudinal_Analysis.py", "🗓️"), ("Emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"), ("Study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐")]),
+            ("06 · REPORTING & GOVERNANCE", [("Reports & exports", "pages/15_Reports_Exports.py", "📄"), ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"), ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"), ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"), ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾")]),
+            ("07 · PLATFORM SETTINGS", [("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"), ("Reliability & agreement", "pages/33_Reliability_and_Agreement.py", "🔁"), ("Release 6 research integration", "pages/32_Release_6_Research_Integration.py", "🧬")]),
         ]
-        for group, links in groups:
-            st.markdown(f"<div class='nav-group-label'>{group}</div>", unsafe_allow_html=True)
-            for label, target, icon in links:
-                st.page_link(target, label=label, icon=icon)
-
+        for i, (group, links) in enumerate(groups):
+            with st.expander(group, expanded=(i == 0)):
+                for label, target, icon in links:
+                    st.page_link(target, label=label, icon=icon)
         st.divider()
-        st.markdown(
-            "<div class='section-kicker'>Active project</div>",
-            unsafe_allow_html=True,
-        )
-
+        st.markdown("<div class='section-kicker'>Active project</div>", unsafe_allow_html=True)
         try:
             from platform_core.database import configured
             from platform_core.workspace import list_projects
             from platform_core.auth import require_principal
-
             principal = require_principal()
             if configured():
                 projects = list_projects(principal.tenant_id, principal.subject)
                 if projects:
-                    project_opts = {
-                        f"{project['name']} · {project['species'].title()}": project
-                        for project in projects
-                    }
-                    project_labels = list(project_opts)
-                    active = st.session_state.get("active_project_id")
-                    default = next(
-                        (
-                            label
-                            for label, project in project_opts.items()
-                            if project["id"] == active
-                        ),
-                        project_labels[0],
-                    )
-                    chosen = st.selectbox(
-                        "Project",
-                        project_labels,
-                        index=project_labels.index(default),
-                        key="shared_project_switch",
-                    )
-                    st.session_state["active_project_id"] = project_opts[chosen]["id"]
-                    st.session_state["active_project_species"] = project_opts[chosen]["species"]
-                else:
-                    st.caption("No projects available")
-            else:
-                st.caption("Local research session")
-        except Exception:
-            st.caption("Project context unavailable")
+                    opts = {f"{x['name']} · {x['species'].title()}": x for x in projects}
+                    labels = list(opts); active = st.session_state.get("active_project_id")
+                    default = next((label for label, item in opts.items() if item["id"] == active), labels[0])
+                    chosen = st.selectbox("Project", labels, index=labels.index(default), key="shared_project_switch")
+                    st.session_state["active_project_id"] = opts[chosen]["id"]
+                    st.session_state["active_project_species"] = opts[chosen]["species"]
+                else: st.caption("No projects available. Create one in Projects & datasets.")
+            else: st.caption("Local research session · persistent projects not configured")
+        except Exception: st.caption("Project selector unavailable; configure access in Projects & datasets.")
+        catalogue = st.session_state.get("dataset_catalogue", {})
+        if catalogue:
+            labels = {f"{item['name']} · {item['species'].title()}": key for key, item in catalogue.items()}
+            current = st.session_state.get("active_dataset_key"); label_list = list(labels)
+            default = next((label for label, key in labels.items() if key == current), label_list[0])
+            choice = st.selectbox("Switch dataset", label_list, index=label_list.index(default), key="shared_dataset_switch")
+            selected_key = labels[choice]
+            if selected_key != current:
+                item = catalogue[selected_key]
+                st.session_state["data"] = item["data"]
+                st.session_state["raw_data_snapshot"] = item["data"].copy(deep=True)
+                st.session_state["cleaning_log"] = []
+                st.session_state["data_name"] = item["name"]
+                st.session_state["species"] = item["species"]
+                from .io import infer_roles
+                st.session_state["roles"] = infer_roles(item["data"])
+                st.session_state["active_dataset_key"] = selected_key
+                st.rerun()
+        else: st.info("No active dataset. Open Overview to import data.")
 
-        st.markdown(
-            "<div class='section-kicker'>Active dataset</div>",
-            unsafe_allow_html=True,
-        )
-
-        if "data" in st.session_state:
-            st.success(f"{len(st.session_state['data']):,} records loaded")
-            st.caption(st.session_state.get("data_name", "Dataset"))
-
-            catalogue = st.session_state.get("dataset_catalogue", {})
-            if catalogue:
-                labels = {
-                    f"{item['name']} · {item['species'].title()}": key
-                    for key, item in catalogue.items()
-                }
-                current = st.session_state.get("active_dataset_key")
-                label_list = list(labels)
-                default = next(
-                    (label for label, key in labels.items() if key == current),
-                    label_list[0],
-                )
-                choice = st.selectbox(
-                    "Switch dataset",
-                    label_list,
-                    index=label_list.index(default),
-                    key="shared_dataset_switch",
-                )
-                selected_key = labels[choice]
-
-                if selected_key != current:
-                    item = catalogue[selected_key]
-                    st.session_state["data"] = item["data"]
-                    st.session_state["raw_data_snapshot"] = item["data"].copy(deep=True)
-                    st.session_state["cleaning_log"] = []
-                    st.session_state["data_name"] = item["name"]
-                    st.session_state["species"] = item["species"]
-
-                    from .io import infer_roles
-
-                    st.session_state["roles"] = infer_roles(item["data"])
-                    st.session_state["active_dataset_key"] = selected_key
-                    st.rerun()
-        else:
-            st.info("No active dataset. Open Overview to import data.")

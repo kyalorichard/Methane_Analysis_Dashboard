@@ -58,3 +58,35 @@ def test_grid_search_is_nested_with_grouped_outer_validation():
         tuning_method="grid",tune_models=True)
     assert out["metrics"].status.eq("completed").all()
     assert len(out["tuned_parameters"]["KNN"])==3
+
+
+def test_gee_and_mixed_models_handle_missing_and_unseen_fold_categories():
+    """Statsmodels comparators must impute within training folds and predict held-out rows."""
+    rng = np.random.default_rng(222)
+    rows = []
+    for g in range(30):
+        animal_effect = rng.normal(0, 3)
+        for rep in range(3):
+            rows.append({
+                "animal": f"A{g:02d}",
+                "weight": rng.normal(30, 4),
+                "site": "Bonga" if g % 2 else "Menz",
+                "member": "CBBP" if g % 3 else "Non-CBBP",
+                "assessor": None if (g + rep) % 17 == 0 else ("X" if rep % 2 else "Y"),
+                "methane": 12 + animal_effect + 0.12 * (g % 2) + rng.normal(0, 1),
+            })
+    d = pd.DataFrame(rows)
+    for comparator in [
+        "GEE (exchangeable; marginal prediction)",
+        "Mixed-effects model (random intercept; fixed-effect prediction)",
+    ]:
+        result = compare_grouped_models(
+            d, "methane", ["weight", "site", "member", "assessor"], "animal",
+            selected_models=["OLS (linear regression)", comparator],
+            n_splits=3, n_boot=20,
+        )
+        row = result["metrics"].query("model == @comparator").iloc[0]
+        assert row.status == "completed"
+        assert row.folds_completed == 3
+        assert np.isfinite(row.RMSE)
+        assert result["oof_predictions"].filter(like="pred__").notna().all().all()

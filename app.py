@@ -68,52 +68,17 @@ def activate(df,name,species='Sheep'):
     catalogue[fingerprint]={'name':name,'data':df.copy(),'species':species}
     st.session_state['active_dataset_key']=fingerprint
 
+# Use the same compact grouped navigation on the landing page and every analysis page.
+from analysis_engine.ui import render_sidebar_navigation
+render_sidebar_navigation()
+
 with st.sidebar:
-    st.markdown("<div class='brand-lockup'><div class='brand-mark'>M</div><div><div class='brand-name'>Methane Phenotype<br>Analytics</div><div class='brand-sub'>ICARDA research workspace</div></div></div>",unsafe_allow_html=True)
-    st.caption("Research workspace")
-    st.divider()
-
-    nav_groups = [
-        ("WORKSPACE", [("Overview","app.py","🏠"),("Research command centre","pages/28_Research_Intelligence.py","🧭"),("Guided workflow","pages/22_Guided_Research_Workflow.py","🗺️"),("Projects & datasets","pages/00_Project_Workspace.py","🗂️"),("Integrated analysis","pages/23_Integrated_Analysis_Centre.py","🧪")]),
-        ("DATA & MEASUREMENT", [("Data management & QC","pages/01_Data_Management.py","🧹"),("Data preparation","pages/24_Data_Preparation_Studio.py","🧽"),("Species & protocol","pages/16_Species_Protocol_Configuration.py","🐑"),("Phenotype builder","pages/19_Custom_Phenotype_Builder.py","🧬")]),
-        ("PHENOTYPE DISCOVERY & VALIDATION", [("Descriptive analysis","pages/02_Descriptive_Analysis.py","📊"),("Phenotype analysis","pages/06_Phenotype_Analysis.py","🔬"),("Repeatability","pages/07_Repeatability_Reliability.py","🔁"),("Phenotype validation","pages/21_Phenotype_Validation.py","✅"),("Phenotype scorecard","pages/14_Phenotype_Scorecard.py","🏅"),("Group comparisons","pages/08_Group_Comparisons.py","⚖️"),("Low / high emitters","pages/18_Low_High_Emitter_Reports.py","↕️")]),
-        ("STATISTICS, ML & MULTIVARIATE", [("Statistical models","pages/03_Statistical_Models.py","📐"),("ML benchmarking","pages/04_ML_Benchmarking.py","🤖"),("Research model lab","pages/25_Research_Model_Lab.py","🧬"),("Clustering & PCA","pages/05_Clustering_PCA.py","🧩"),("Explainability","pages/09_Explainability.py","💡"),("Advanced analysis","pages/11_Advanced_Analysis.py","🧪"),("Sensitivity & robustness","pages/12_Sensitivity_Robustness.py","🛡️"),("Equivalence analysis","pages/13_Equivalence_Analysis.py","↔️")]),
-        ("LONGITUDINAL ANALYSIS", [("Longitudinal analysis","pages/10_Longitudinal_Analysis.py","🗓️"),("Emitter tracking","pages/20_Longitudinal_Emitter_Tracking.py","📈")]),
-        ("RELEASE 6 INTEGRATION", [("Release 6 research integration","pages/32_Release_6_Research_Integration.py","🧬"),("Reliability & agreement","pages/33_Reliability_and_Agreement.py","🔁"),("Advanced ML & explainability","pages/34_Advanced_ML_Explainability.py","🤖")]),
-        ("MODEL CONFIGURATION", [("Analysis & model settings","pages/36_Analysis_Model_Settings.py","⚙️")]),
-        ("OUTPUTS & GOVERNANCE", [("Reports & exports","pages/15_Reports_Exports.py","📄"),("Publication suite","pages/27_Scientific_Publication_Suite.py","📚"),("Analysis run history","pages/26_Analysis_Run_History.py","🕘"),("Compare analysis runs","pages/29_Analysis_Comparison.py","🧾"),("Scientific workbench","pages/17_Scientific_Analysis_Workbench.py","🧰")]),
-    ]
-    for group, links in nav_groups:
-        st.markdown(f"<div class='nav-group-label'>{group}</div>",unsafe_allow_html=True)
-        for label,target,icon in links:
-            st.page_link(target,label=label,icon=icon)
-
-    st.divider()
-    st.markdown("<div class='section-kicker'>Project selector</div>",unsafe_allow_html=True)
-    if configured():
-        try:
-            available_projects=list_projects(principal.tenant_id,principal.subject)
-            if available_projects:
-                project_options={f"{p['name']} · {p['species'].title()}":p for p in available_projects}
-                project_labels=list(project_options)
-                active_id=st.session_state.get('active_project_id')
-                default_project=next((label for label,pj in project_options.items() if pj['id']==active_id),project_labels[0])
-                chosen_project=st.selectbox("Active project",project_labels,index=project_labels.index(default_project),key="sidebar_project_selector")
-                selected_project=project_options[chosen_project]
-                st.session_state['active_project_id']=selected_project['id']
-                st.session_state['active_project_species']=selected_project['species']
-            else:
-                st.caption("No accessible projects yet. Create one in Projects & datasets.")
-        except Exception:
-            st.caption("Project selector unavailable; open Projects & datasets to configure access.")
-    else:
-        st.caption("Local research session · persistent projects not configured")
+    st.markdown("<div class='section-kicker'>Workspace controls</div>",unsafe_allow_html=True)
     species_labels={p.label:p.key for p in PROFILES.values()}
     selected_species=st.selectbox('Livestock species',list(species_labels),index=list(species_labels.values()).index(st.session_state.get('species','sheep')) if st.session_state.get('species','sheep') in species_labels.values() else 0,key='species_selector')
     st.session_state['species']=species_labels[selected_species]
-
-    st.markdown("<div class='section-kicker'>Dataset selector</div>",unsafe_allow_html=True)
-    upload=st.file_uploader('Import phenotype dataset',type=['csv','parquet','pq','xlsx','xls'],help='Upload CSV or Parquet (also Excel for backward compatibility). Data is loaded into the research session; project storage uses canonical Parquet.')
+    st.markdown("<div class='section-kicker'>Dataset</div>",unsafe_allow_html=True)
+    upload=st.file_uploader('Import phenotype dataset',type=['csv','parquet','pq','xlsx','xls'],help='Upload CSV, Parquet or Excel data.')
     if upload is not None:
         try:
             activate(load_uploaded_data(upload),upload.name,species_labels[selected_species])
@@ -121,7 +86,6 @@ with st.sidebar:
         except Exception as e: st.error(f'Unable to load dataset: {e}')
     if st.button('Load example sheep dataset',use_container_width=True):
         activate(pd.read_csv(DATA_PATH),DATA_PATH.name,'sheep');st.rerun()
-
     catalogue=st.session_state.get('dataset_catalogue',{})
     if catalogue:
         keys=list(catalogue)
@@ -132,11 +96,8 @@ with st.sidebar:
         selected_key=labels[selected_label]
         if selected_key != current:
             item=catalogue[selected_key]
-            st.session_state['data']=item['data']
-            st.session_state['data_name']=item['name']
-            st.session_state['species']=item['species']
-            st.session_state['roles']=infer_species_roles(item['data'].columns,item['species'])
-            st.session_state['active_dataset_key']=selected_key
+            st.session_state['data']=item['data']; st.session_state['data_name']=item['name']; st.session_state['species']=item['species']
+            st.session_state['roles']=infer_species_roles(item['data'].columns,item['species']); st.session_state['active_dataset_key']=selected_key
             st.rerun()
         st.success(f"Active · {len(st.session_state['data']):,} records")
         st.caption(st.session_state.get('data_name','Dataset loaded'))
@@ -145,7 +106,6 @@ with st.sidebar:
             st.rerun()
     else:
         st.info('Import a dataset or load the example dataset to begin.')
-
     st.markdown("<div class='section-kicker'>Analysis readiness</div>",unsafe_allow_html=True)
     has_data='data' in st.session_state
     mapped=bool(st.session_state.get('roles',{}).get('animal_id')) if has_data else False
@@ -153,9 +113,7 @@ with st.sidebar:
     progress_step('Dataset imported',has_data,'Ready to inspect' if has_data else 'Import a CSV or Parquet file')
     progress_step('Animal ID mapped',mapped,'Needed for animal-level validation' if mapped else 'Map Animal ID in Data management')
     progress_step('Derived phenotypes',has_derived,'Formula registry available' if has_derived else 'Optional: create a phenotype')
-    st.divider()
-    st.caption(f"Signed in: {principal.email} • {principal.role}")
-    st.caption(f"Tenant: {principal.tenant_id} • {principal.auth_source}")
+    st.divider(); st.caption(f"Signed in: {principal.email} • {principal.role}"); st.caption(f"Tenant: {principal.tenant_id} • {principal.auth_source}")
 
 header('Methane Phenotype Analytics','A reproducible workspace for methane phenotype quality control, statistical inference and predictive modelling.')
 if 'data' not in st.session_state:

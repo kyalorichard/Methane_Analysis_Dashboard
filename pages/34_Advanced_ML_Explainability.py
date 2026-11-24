@@ -26,15 +26,21 @@ if len(df)<10:
 
 st.info("All internal validation workflows keep animal records together. If animals are clustered within herds, farms or sites, use the highest independent sampling unit as the grouping variable. These analyses are predictive, not causal.")
 
-with st.sidebar:
-    st.subheader("Analysis configuration")
-    outcome=choose_col(df,"Continuous target",roles.get("methane"),nums)
-    animal=choose_col(df,"Grouping unit (animal / herd / farm)",roles.get("animal_id"))
-    features=st.multiselect("Predictors",[c for c in df.columns if c not in [outcome,animal]],default=[c for c in nums if c!=outcome][:8])
-    seed=st.number_input("Random seed",min_value=0,max_value=999999,value=42)
+# Keep analytical controls in the page body, not in the global navigation sidebar.
+with st.container(border=True):
+    st.markdown("#### Analysis configuration")
+    st.caption("Choose the target, independent grouping unit and predictors before running the validation workflows below.")
+    cfg_a, cfg_b, cfg_c = st.columns([1.1, 1.1, 1.0])
+    with cfg_a:
+        outcome=choose_col(df,"Continuous target",roles.get("methane"),nums)
+    with cfg_b:
+        animal=choose_col(df,"Grouping unit",roles.get("animal_id"))
+    with cfg_c:
+        seed=st.number_input("Random seed",min_value=0,max_value=999999,value=42)
+    features=st.multiselect("Predictor variables",[c for c in df.columns if c not in [outcome,animal]],default=[c for c in nums if c!=outcome][:8],help="Select variables available at the intended prediction time. Exclude target-derived or post-outcome variables.")
 
 if not features:
-    st.warning("Select at least one predictor in the sidebar.")
+    st.warning("Select at least one predictor to continue.")
     st.stop()
 
 numeric=[c for c in features if pd.api.types.is_numeric_dtype(df[c])]

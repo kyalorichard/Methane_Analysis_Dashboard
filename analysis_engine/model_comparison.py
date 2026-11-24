@@ -193,7 +193,32 @@ def compare_grouped_models(df, outcome, features, group_col, selected_models=Non
                     elif kind in ("gee", "mixed"):
                         import statsmodels.api as sm
                         import statsmodels.formula.api as smf
-                        train = d.iloc[tr].copy()
+                        # Formula-based statsmodels estimators do not have the sklearn
+                        # preprocessing pipeline. Impute from the outer-training fold
+                        # only, then apply the same values to its held-out fold.
+                        train = d.iloc[tr].copy().reset_index(drop=True)
+                        test = d.iloc[te].copy().reset_index(drop=True)
+                        for col in features:
+                            if pd.api.types.is_numeric_dtype(train[col]):
+                                train_values = pd.to_numeric(train[col], errors="coerce")
+                                test_values = pd.to_numeric(test[col], errors="coerce")
+                                fill_value = train_values.median()
+                                if not np.isfinite(fill_value):
+                                    fill_value = 0.0
+                                train[col] = train_values.fillna(fill_value)
+                                test[col] = test_values.fillna(fill_value)
+                            else:
+                                train_cat = train[col].astype("object").where(train[col].notna(), "__missing__")
+                                test_cat = test[col].astype("object").where(test[col].notna(), "__missing__")
+                                # Formula estimators cannot encode a category first
+                                # appearing in the held-out fold. Map such unseen
+                                # levels to the training-fold mode (never fit on test).
+                                train_levels = set(train_cat.astype(str).unique())
+                                train_mode = train_cat.astype(str).mode()
+                                fallback = str(train_mode.iloc[0]) if len(train_mode) else "__missing__"
+                                test_cat = test_cat.astype(str).where(test_cat.astype(str).isin(train_levels), fallback)
+                                train[col] = train_cat.astype(str)
+                                test[col] = test_cat.astype(str)
                         formula_terms = [f'C(Q("{c}"))' if not pd.api.types.is_numeric_dtype(train[c]) else f'Q("{c}")' for c in features]
                         formula = f'Q("{outcome}") ~ ' + ' + '.join(formula_terms)
                         if kind == "gee":
@@ -203,9 +228,9 @@ def compare_grouped_models(df, outcome, features, group_col, selected_models=Non
                             fit = None
                             model_fit = smf.mixedlm(formula, data=train, groups=train[group_col])
                             fit_error = None
-                            for optimizer in ("lbfgs", "powell", "cg"):
+                            for optimizer in ("lbfgs", "powell", "cg", "nm"):
                                 try:
-                                    candidate = model_fit.fit(reml=bool(conventional_parameters.get("mixed_reml", False)), method=optimizer, disp=False)
+                                    candidate = model_fit.fit(reml=bool(conventional_parameters.get("mixed_reml", False)), method=optimizer, disp=False, maxiter=2000)
                                     if bool(getattr(candidate, "converged", False)):
                                         fit = candidate
                                         break
@@ -214,7 +239,9 @@ def compare_grouped_models(df, outcome, features, group_col, selected_models=Non
                                     fit_error = exc
                             if fit is None:
                                 raise RuntimeError(f"Mixed-effects model failed to converge: {fit_error}")
-                        fold_pred = np.asarray(fit.predict(d.iloc[te]))
+                        # MixedLM prediction for unseen groups uses fixed effects only;
+                        # reset indices prevent statsmodels from misaligning held-out rows.
+                        fold_pred = np.asarray(fit.predict(test), dtype=float)
                     else:
                         if len(features) != 1 or not pd.api.types.is_numeric_dtype(d[features[0]]):
                             raise ValueError("Allometric regression requires exactly one numeric predictor (typically body weight).")
@@ -227,6 +254,9 @@ def compare_grouped_models(df, outcome, features, group_col, selected_models=Non
                         log_resid = np.log(y[tr]) - power.predict(np.log(xtr).reshape(-1, 1))
                         smearing = float(np.mean(np.exp(log_resid)))
                         fold_pred = np.exp(power.predict(np.log(xte).reshape(-1, 1))) * smearing
+                fold_pred = np.asarray(fold_pred, dtype=float).reshape(-1)
+                if len(fold_pred) != len(te) or not np.isfinite(fold_pred).all():
+                    raise ValueError("The model returned missing, non-finite, or misaligned held-out predictions.")
                 oof[te] = fold_pred
                 fold_rows.append({"fold": fold, "train_groups": int(pd.Series(groups[tr]).nunique()),
                                   "test_groups": int(pd.Series(groups[te]).nunique()), "test_records": int(len(te))})
