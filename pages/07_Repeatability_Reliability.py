@@ -11,7 +11,62 @@ d=df[[animal,roundc,out]].copy();d[out]=pd.to_numeric(d[out],errors='coerce');d=
 p=d.pivot_table(index=animal,columns=roundc,values=out,aggfunc='median')
 metric_row([('ANIMALS WITH REPEATS',f'{int((p.notna().sum(axis=1)>=2).sum()):,}','At least two observed rounds'),('ROUNDS',str(p.shape[1]),'Observed round categories'),('PAIRED ANIMALS',f'{int(p.dropna().shape[0]):,}','Complete across all displayed rounds')])
 if p.shape[1]>=2:
-    st.plotly_chart(px.line(p.dropna().head(150).reset_index().melt(id_vars=animal),x='variable',y='value',color=animal,title='Within-animal trajectories (first 150 complete animals)',opacity=.18),use_container_width=True)
+    # Within-animal trajectories
+    st.subheader("Within-animal trajectories")
+
+    # Remove incomplete observations
+    p_clean = p.dropna().head(150).copy()
+
+    if not p_clean.empty:
+
+        # Convert animal identifiers into a regular column
+        p_plot = p_clean.reset_index()
+
+        # Ensure the identifier column exists
+        if animal not in p_plot.columns:
+            p_plot = p_plot.rename(
+                columns={p_plot.columns[0]: animal}
+            )
+
+        # Convert repeated measurements into long format
+        p_long = p_plot.melt(
+            id_vars=[animal],
+            var_name="measurement",
+            value_name="value"
+        )
+
+        # Ensure measurements are numeric
+        p_long["value"] = pd.to_numeric(
+            p_long["value"], errors="coerce"
+        )
+
+        p_long = p_long.dropna(subset=["value"])
+
+        if not p_long.empty:
+            fig = px.line(
+                p_long,
+                x="measurement",
+                y="value",
+                color=animal,
+                title="Within-animal trajectories (first 150 complete animals)",
+                opacity=0.18
+            )
+
+            fig.update_layout(
+                xaxis_title="Measurement",
+                yaxis_title="Phenotype value",
+                legend_title="Animal ID"
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+        else:
+            st.info("No valid numeric measurements available for plotting.")
+    else:
+        st.info("Insufficient complete animal observations for trajectory plotting.")
+
     # One-way random effects ICC(1,1) on balanced complete cases, explicitly labelled exploratory.
     q=p.dropna();k=q.shape[1];n=q.shape[0]
     if n>=3 and k>=2:
