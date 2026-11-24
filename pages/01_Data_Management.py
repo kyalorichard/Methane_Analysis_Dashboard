@@ -15,7 +15,13 @@ for i,role in enumerate(role_names):
     roles[role]=cols[i%2].selectbox(role.replace('_',' ').title(),opts,index=ix,key='map_'+role)
 st.session_state['roles']=roles
 st.subheader('Data preview');st.dataframe(df.head(100),use_container_width=True,height=300)
-st.subheader('Missingness profile');m=(df.isna().mean()*100).sort_values(ascending=False).rename('missing_percent').reset_index(names='variable');st.dataframe(m,use_container_width=True)
+#st.subheader('Missingness profile');m=(df.isna().mean()*100).sort_values(ascending=False).rename('missing_percent').reset_index(names='variable');st.dataframe(m,use_container_width=True)
+st.subheader("Missingness profile"); m = ((df.isna().mean() * 100).sort_values(ascending=False).rename("missing_percent").reset_index())
+
+m.columns = ["variable", "missing_percent"]
+
+st.dataframe(m, use_container_width=True)
+
 st.subheader('QC checklist')
 for issue in validate_dataset(df): st.warning(issue)
 if not validate_dataset(df): st.success('Basic structural checks passed. Confirm domain-specific ranges and instrument quality before formal analysis.')
