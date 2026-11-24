@@ -151,3 +151,21 @@ Release 6.7 adds a central model configuration page (`pages/36_Analysis_Model_Se
 
 ## Release 6.8 — Persistent settings and experiment management
 Release 6.8 adds a SQLite-backed settings registry scoped by user, project/study and species; nested GroupKFold random-search optimisation for supported ML estimators; conventional-model controls for GEE working correlation, mixed-effects ML/REML, quantile level and spline knots; and an experiment registry that stores configurations, metrics and paired comparisons. Set `ANALYSIS_REGISTRY_PATH` to a durable path. In production, connect user scope to the authenticated identity and use durable shared storage for multi-instance deployments. See `docs/RELEASE_6_8_PERSISTENT_SETTINGS_EXPERIMENTS.md`.
+
+## Local-first project persistence (Release 6.9.1)
+
+The Project Workspace now defaults to local persistent storage when the cloud
+backend is not fully configured. Local mode uses SQLite metadata plus Parquet
+files under `data/local_workspace/`; no PostgreSQL or S3 credentials are needed.
+
+- `PROJECT_STORAGE_BACKEND=local` selects SQLite + filesystem storage.
+- `PROJECT_STORAGE_BACKEND=cloud` selects the existing PostgreSQL + S3 backend.
+- If the variable is unset, cloud mode is selected only when both `DATABASE_URL`
+  and `S3_BUCKET` are present; otherwise local mode is used.
+- `LOCAL_PROJECT_STORAGE_DIR` optionally changes the local data directory.
+
+For Docker/cloud hosting, mount `data/local_workspace` (or the configured
+`LOCAL_PROJECT_STORAGE_DIR`) as a persistent volume. Local mode is intended for
+single-instance deployments; use PostgreSQL/S3 for concurrent multi-instance
+production deployments. Back up the SQLite database and project directory
+consistently, preferably while the app is stopped or using SQLite's backup API.
