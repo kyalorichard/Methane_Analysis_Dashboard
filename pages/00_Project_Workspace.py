@@ -59,6 +59,7 @@ with st.expander('Measurement protocol metadata',expanded=True):
         sop=st.text_input('Protocol / SOP reference',key='upload_sop')
         min_duration=st.number_input('Minimum valid recording duration (seconds)',min_value=0.0,value=0.0,step=10.0,key='upload_min_duration')
 protocol={'instrument':instrument,'method':method,'units':units,'calibration_status':calibration,'protocol_reference':sop,'minimum_recording_duration_seconds':min_duration}
+st.session_state["measurement_protocol"]=protocol
 up=st.file_uploader('Upload dataset (CSV or Parquet)',type=['csv','parquet','pq','xlsx','xls'],help='CSV and Parquet are supported. Excel remains available for backward compatibility. All new project datasets are stored internally as Parquet.',key='persistent_dataset_upload')
 if up is not None:
     try:

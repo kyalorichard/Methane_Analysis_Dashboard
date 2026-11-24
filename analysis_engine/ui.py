@@ -611,64 +611,52 @@ def render_sidebar_navigation():
         )
 
         groups = [
-            (
-                "WORKSPACE",
-                [
-                    ("Overview", "app.py", "🏠"),
-                    ("Guided workflow", "pages/22_Guided_Research_Workflow.py", "🧭"),
-                    ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪"),
-                    ("Analysis run history", "pages/26_Analysis_Run_History.py", "🗂️"),
-                    ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"),
-                ],
-            ),
-            (
-                "DATA PREPARATION",
-                [
-                    ("Data management & QC", "pages/01_Data_Management.py", "🧹"),
-                    ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
-                    ("Species & protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
-                    ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
-                ],
-            ),
-            (
-                "EXPLORE & VALIDATE",
-                [
-                    ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"),
-                    ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬"),
-                    ("Repeatability", "pages/07_Repeatability_Reliability.py", "🔁"),
-                    ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"),
-                    ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
-                    ("Low / high emitters", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
-                    ("Emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"),
-                ],
-            ),
-            (
-                "MODEL & EXPLAIN",
-                [
-                    ("Statistical models", "pages/03_Statistical_Models.py", "📐"),
-                    ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"),
-                    ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
-                    ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"),
-                    ("Model explainability", "pages/09_Explainability.py", "💡"),
-                    ("Longitudinal analysis", "pages/10_Longitudinal_Analysis.py", "🗓️"),
-                    ("Advanced analysis", "pages/11_Advanced_Analysis.py", "🧪"),
-                    ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
-                    ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
-                    ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
-                    ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
-                ],
-            ),
-            (
-                "OUTPUTS",
-                [("Reports & exports", "pages/15_Reports_Exports.py", "📄")],
-            ),
+            ("WORKSPACE", [
+                ("Overview", "app.py", "🏠"),
+                ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"),
+                ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"),
+                ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"),
+                ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪"),
+            ]),
+            ("DATA & MEASUREMENT", [
+                ("Data management & QC", "pages/01_Data_Management.py", "🧹"),
+                ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
+                ("Species & protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
+                ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
+            ]),
+            ("PHENOTYPE DISCOVERY & VALIDATION", [
+                ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"),
+                ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬"),
+                ("Repeatability & reliability", "pages/07_Repeatability_Reliability.py", "🔁"),
+                ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
+                ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
+                ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"),
+                ("Low / high emitters", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
+            ]),
+            ("STATISTICS, ML & MULTIVARIATE", [
+                ("Statistical models", "pages/03_Statistical_Models.py", "📐"),
+                ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"),
+                ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
+                ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"),
+                ("Model explainability", "pages/09_Explainability.py", "💡"),
+                ("Advanced analysis", "pages/11_Advanced_Analysis.py", "🧪"),
+                ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
+                ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
+            ]),
+            ("LONGITUDINAL ANALYSIS", [
+                ("Longitudinal analysis", "pages/10_Longitudinal_Analysis.py", "🗓️"),
+                ("Emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"),
+            ]),
+            ("RESEARCH OUTPUTS & GOVERNANCE", [
+                ("Reports & exports", "pages/15_Reports_Exports.py", "📄"),
+                ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
+                ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"),
+                ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
+                ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
+            ]),
         ]
-
         for group, links in groups:
-            st.markdown(
-                f"<div class='nav-group-label'>{group}</div>",
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"<div class='nav-group-label'>{group}</div>", unsafe_allow_html=True)
             for label, target, icon in links:
                 st.page_link(target, label=label, icon=icon)
 

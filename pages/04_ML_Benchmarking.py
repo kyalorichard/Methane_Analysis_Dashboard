@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 from analysis_engine.ui import *
-from analysis_engine.ml import grouped_regression_benchmark, REGRESSORS
+from analysis_engine.ml import grouped_regression_benchmark, nested_grouped_regression_benchmark, REGRESSORS
 
 from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
@@ -71,3 +71,27 @@ if res is not None:
             y="mae_mean",title="Grouped cross-validation MAE (lower is better)"),
             use_container_width=True)
 st.info("All records from the same animal are assigned to the same validation fold. Preprocessing is fitted inside each fold. These are internal validation estimates, not external validation. Compare models using the same folds and predictor set.")
+
+
+st.divider()
+st.subheader("Nested animal-grouped validation")
+st.caption("Optional, more computationally intensive evaluation. Hyperparameter selection occurs inside each outer training fold; the outer folds estimate generalisation performance.")
+outer_folds=st.slider("Outer validation folds",3,8,5,key="nested_outer_folds")
+inner_folds=st.slider("Inner tuning folds",2,5,3,key="nested_inner_folds")
+nested_models=st.multiselect("Models for nested validation",model_names,
+    default=[m for m in ["Ridge","Random Forest","Extra Trees"] if m in model_names],
+    key="nested_model_selection")
+if st.button("Run nested grouped benchmark",type="primary",disabled=(not nested_models or not features)):
+    try:
+        with st.spinner("Running nested grouped cross-validation. This may take several minutes."):
+            nested=nested_grouped_regression_benchmark(df,outcome,features,animal,
+                outer_splits=outer_folds,inner_splits=inner_folds,selected_models=nested_models)
+        st.session_state["nested_ml_results"]=nested
+    except Exception as exc:
+        st.error(f"Nested benchmark failed: {exc}")
+nested=st.session_state.get("nested_ml_results")
+if nested is not None:
+    st.dataframe(nested,use_container_width=True,hide_index=True)
+    st.download_button("Download nested benchmark results",
+        nested.to_csv(index=False).encode("utf-8"),"nested_grouped_ml_benchmark.csv","text/csv")
+    st.warning("Interpret outer-fold estimates with their fold-level variability. Small numbers of animals, strong group imbalance and limited independent test groups can still produce uncertain performance estimates.")

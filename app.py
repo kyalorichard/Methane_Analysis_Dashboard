@@ -62,8 +62,8 @@ def activate(df,name,species='Sheep'):
     st.session_state['roles']=infer_species_roles(df.columns,species)
     st.session_state['species']=species
     st.session_state['dataset_profile']=inspect_dataset(df,species)
-    import hashlib
-    fingerprint=hashlib.sha256((str(name)+str(df.shape)+str(list(df.columns))).encode()).hexdigest()[:12]
+    from analysis_engine.research_intelligence import dataframe_fingerprint
+    fingerprint=dataframe_fingerprint(df)[:16]
     catalogue=st.session_state.setdefault('dataset_catalogue',{})
     catalogue[fingerprint]={'name':name,'data':df.copy(),'species':species}
     st.session_state['active_dataset_key']=fingerprint
@@ -73,40 +73,18 @@ with st.sidebar:
     st.caption("Research workspace")
     st.divider()
 
-    st.markdown("<div class='nav-group-label'>Workspace</div>",unsafe_allow_html=True)
-    st.page_link("app.py", label="Overview", icon="🏠")
-    st.page_link("pages/22_Guided_Research_Workflow.py", label="Guided workflow", icon="🧭")
-    st.page_link("pages/00_Project_Workspace.py", label="Projects & datasets", icon="🗂️")
-
-    st.markdown("<div class='nav-group-label'>Data preparation</div>",unsafe_allow_html=True)
-    st.page_link("pages/01_Data_Management.py", label="Data management & QC", icon="🧹")
-    st.page_link("pages/16_Species_Protocol_Configuration.py", label="Species & protocol", icon="🐑")
-    st.page_link("pages/19_Custom_Phenotype_Builder.py", label="Phenotype builder", icon="🧬")
-
-    st.markdown("<div class='nav-group-label'>Explore & validate</div>",unsafe_allow_html=True)
-    st.page_link("pages/02_Descriptive_Analysis.py", label="Descriptive analysis", icon="📊")
-    st.page_link("pages/06_Phenotype_Analysis.py", label="Phenotype analysis", icon="🔬")
-    st.page_link("pages/07_Repeatability_Reliability.py", label="Repeatability", icon="🔁")
-    st.page_link("pages/08_Group_Comparisons.py", label="Group comparisons", icon="⚖️")
-    st.page_link("pages/21_Phenotype_Validation.py", label="Phenotype validation", icon="✅")
-    st.page_link("pages/18_Low_High_Emitter_Reports.py", label="Low / high emitters", icon="↕️")
-    st.page_link("pages/20_Longitudinal_Emitter_Tracking.py", label="Emitter tracking", icon="📈")
-
-    #st.markdown("<div class='nav-group-label'>Model & explain</div>",unsafe_allow_html=True)
-    #st.page_link("pages/03_Statistical_Models.py", label="Statistical models", icon="📐")
-    #st.page_link("pages/04_ML_Benchmarking.py", label="ML benchmarking", icon="🤖")
-    #st.page_link("pages/05_Clustering_PCA.py", label="Clustering & PCA", icon="🧩")
-    #st.page_link("pages/09_Explainability.py", label="Model explainability", icon="💡")
-    #st.page_link("pages/10_Longitudinal_Analysis.py", label="Longitudinal analysis", icon="🗓️")
-    #st.page_link("pages/11_Advanced_Analysis.py", label="Advanced analysis", icon="🧪")
-    #st.page_link("pages/12_Sensitivity_Robustness.py", label="Sensitivity & robustness", icon="🛡️")
-    #st.page_link("pages/13_Equivalence_Analysis.py", label="Equivalence analysis", icon="↔️")
-    #st.page_link("pages/14_Phenotype_Scorecard.py", label="Phenotype scorecard", icon="🏅")
-    #st.page_link("pages/17_Scientific_Analysis_Workbench.py", label="Scientific workbench", icon="🧰")
-
-    #st.markdown("<div class='nav-group-label'>Outputs</div>",unsafe_allow_html=True)
-    #st.page_link("pages/15_Reports_Exports.py", label="Reports & exports", icon="📄")
-    #st.page_link("pages/27_Scientific_Publication_Suite.py", label="Publication suite", icon="📚")
+    nav_groups = [
+        ("WORKSPACE", [("Overview","app.py","🏠"),("Research command centre","pages/28_Research_Intelligence.py","🧭"),("Guided workflow","pages/22_Guided_Research_Workflow.py","🗺️"),("Projects & datasets","pages/00_Project_Workspace.py","🗂️"),("Integrated analysis","pages/23_Integrated_Analysis_Centre.py","🧪")]),
+        ("DATA & MEASUREMENT", [("Data management & QC","pages/01_Data_Management.py","🧹"),("Data preparation","pages/24_Data_Preparation_Studio.py","🧽"),("Species & protocol","pages/16_Species_Protocol_Configuration.py","🐑"),("Phenotype builder","pages/19_Custom_Phenotype_Builder.py","🧬")]),
+        ("PHENOTYPE DISCOVERY & VALIDATION", [("Descriptive analysis","pages/02_Descriptive_Analysis.py","📊"),("Phenotype analysis","pages/06_Phenotype_Analysis.py","🔬"),("Repeatability","pages/07_Repeatability_Reliability.py","🔁"),("Phenotype validation","pages/21_Phenotype_Validation.py","✅"),("Phenotype scorecard","pages/14_Phenotype_Scorecard.py","🏅"),("Group comparisons","pages/08_Group_Comparisons.py","⚖️"),("Low / high emitters","pages/18_Low_High_Emitter_Reports.py","↕️")]),
+        ("STATISTICS, ML & MULTIVARIATE", [("Statistical models","pages/03_Statistical_Models.py","📐"),("ML benchmarking","pages/04_ML_Benchmarking.py","🤖"),("Research model lab","pages/25_Research_Model_Lab.py","🧬"),("Clustering & PCA","pages/05_Clustering_PCA.py","🧩"),("Explainability","pages/09_Explainability.py","💡"),("Advanced analysis","pages/11_Advanced_Analysis.py","🧪"),("Sensitivity & robustness","pages/12_Sensitivity_Robustness.py","🛡️"),("Equivalence analysis","pages/13_Equivalence_Analysis.py","↔️")]),
+        ("LONGITUDINAL ANALYSIS", [("Longitudinal analysis","pages/10_Longitudinal_Analysis.py","🗓️"),("Emitter tracking","pages/20_Longitudinal_Emitter_Tracking.py","📈")]),
+        ("OUTPUTS & GOVERNANCE", [("Reports & exports","pages/15_Reports_Exports.py","📄"),("Publication suite","pages/27_Scientific_Publication_Suite.py","📚"),("Analysis run history","pages/26_Analysis_Run_History.py","🕘"),("Compare analysis runs","pages/29_Analysis_Comparison.py","🧾"),("Scientific workbench","pages/17_Scientific_Analysis_Workbench.py","🧰")]),
+    ]
+    for group, links in nav_groups:
+        st.markdown(f"<div class='nav-group-label'>{group}</div>",unsafe_allow_html=True)
+        for label,target,icon in links:
+            st.page_link(target,label=label,icon=icon)
 
     st.divider()
     st.markdown("<div class='section-kicker'>Project selector</div>",unsafe_allow_html=True)
@@ -179,20 +157,18 @@ with st.sidebar:
 
 header('Methane Phenotype Analytics','A reproducible workspace for methane phenotype quality control, statistical inference and predictive modelling.')
 if 'data' not in st.session_state:
-    st.markdown("<div class='hero'><span class='tag'>RESEARCH WORKSPACE</span><h1>Welcome to Methane Phenotype Analytics</h1><p>A guided environment for livestock methane phenotype quality control, scientific evaluation, statistical modelling and reproducible research.</p></div>",unsafe_allow_html=True)
-    st.markdown('### Get started')
-    st.write('Import your study dataset from the left panel, or load the included example dataset to explore the platform. You can change species and map study variables after importing.')
+    st.markdown("<div class='hero'><span class='tag'>RESEARCH WORKSPACE</span><h1>Methane Phenotype Analytics</h1><p>A guided scientific environment for measurement quality, phenotype discovery, statistical inference, machine learning and reproducible livestock methane research.</p></div>",unsafe_allow_html=True)
+    st.subheader("Start a research session")
+    st.write("Import a study dataset from the sidebar or load the example sheep dataset. The research command centre will profile the data and recommend suitable next steps.")
     a,b,c=st.columns(3)
-    with a: st.markdown("<div class='workflow-card'><div class='step'>01 · Import</div><h3>Bring in your data</h3><p>Upload CSV or Excel files, select the livestock species and map animal, breed, round and phenotype variables.</p></div>",unsafe_allow_html=True)
-    with b: st.markdown("<div class='workflow-card'><div class='step'>02 · Explore</div><h3>Check data quality</h3><p>Review missingness, distributions, recording quality, repeated observations and candidate phenotype definitions.</p></div>",unsafe_allow_html=True)
-    with c: st.markdown("<div class='workflow-card'><div class='step'>03 · Analyse</div><h3>Build scientific evidence</h3><p>Compare conventional and machine-learning methods, assess repeatability and export transparent results.</p></div>",unsafe_allow_html=True)
-    st.markdown('')
-    left,right=st.columns([1.15,.85])
-    with left:
-        st.markdown('#### Recommended analysis sequence')
-        st.markdown('1. **Data management** — inspect records and map study variables.\n2. **Descriptive analysis** — assess phenotype distributions and group structure.\n3. **Phenotype development** — define derived traits using documented formulas.\n4. **Scientific validation** — assess repeatability, association and biological plausibility.\n5. **Modelling** — benchmark conventional and machine-learning approaches using animal-grouped validation.\n6. **Reporting** — export datasets, tables and reproducibility metadata.')
-    with right:
-        st.markdown("<div class='panel'><div class='section-kicker'>Research principles</div><b>Animal-level validation</b><p class='muted'>Repeated observations from the same animal should remain together during model validation.</p><hr><b>Transparent phenotype definitions</b><p class='muted'>Record formulas, units, assumptions and protocol context for derived variables.</p><hr><b>Interpretation with care</b><p class='muted'>Sensor signals and AUC measures are not methane mass flux without validated calibration.</p></div>",unsafe_allow_html=True)
+    with a: st.markdown("<div class='workflow-card'><div class='step'>01 · DATA & MEASUREMENT</div><h3>Establish data readiness</h3><p>Map animal identifiers, methane outcomes, recording duration, measurement units, instrument and calibration metadata.</p></div>",unsafe_allow_html=True)
+    with b: st.markdown("<div class='workflow-card'><div class='step'>02 · PHENOTYPE EVIDENCE</div><h3>Evaluate candidate traits</h3><p>Assess distributions, missingness, repeatability, duration sensitivity, biological associations and robustness.</p></div>",unsafe_allow_html=True)
+    with c: st.markdown("<div class='workflow-card'><div class='step'>03 · MODELLING & REPORTING</div><h3>Build reproducible evidence</h3><p>Compare conventional and animal-grouped ML approaches, validate findings and export research outputs.</p></div>",unsafe_allow_html=True)
+    st.markdown("### Research workflow")
+    st.page_link("pages/28_Research_Intelligence.py",label="Open research command centre",icon="🧭",use_container_width=True)
+    st.page_link("pages/22_Guided_Research_Workflow.py",label="Open guided research workflow",icon="🗺️",use_container_width=True)
+    st.page_link("pages/23_Integrated_Analysis_Centre.py",label="Run integrated analysis",icon="🧪",use_container_width=True)
+    st.markdown("<div class='panel'><b>Scientific guardrails</b><p class='muted'>Keep repeated observations from the same animal together during model validation. Sensor concentration and AUC are not methane mass flux (e.g. g/day) without validated calibration. Flagged observations require review; automated QC must not silently remove records.</p></div>",unsafe_allow_html=True)
     st.stop()
 
 df=st.session_state['data']; prof=dataset_profile(df); roles=st.session_state.get('roles',infer_roles(df))
@@ -204,6 +180,15 @@ with st.expander('Species adapter and protocol readiness'):
     for issue in validate_species_dataset(df,st.session_state.get('species','sheep')): st.warning(issue)
     st.caption('Species-specific phenotype semantics, units, calibration and QC limits must be confirmed by the study team before cross-species comparisons.')
 metric_row([('RECORDS',f"{len(df):,}",'Rows in active dataset'),('VARIABLES',f"{df.shape[1]:,}",'Columns in active dataset'),('UNIQUE ANIMALS',f"{df[animal].nunique():,}" if animal in df else 'Not mapped','Distinct animal identifiers'),('MISSING CELLS',f"{prof['missing_percent']:.2f}%",'Percentage of all cells missing')])
+from analysis_engine.research_intelligence import dataset_readiness
+readiness=dataset_readiness(df,roles,st.session_state.get("measurement_protocol",{}))
+st.subheader("Research readiness")
+rc1,rc2=st.columns([1,3])
+readiness_pct=readiness["readiness_pct"]
+rc1.metric("Readiness checklist",f"{readiness_pct:.0f}%")
+rc2.progress(readiness_pct/100)
+st.caption("Checklist covers mapped identifiers, outcome, measurement metadata, recording structure and duplicate rows; it is not a scientific certification.")
+st.page_link("pages/28_Research_Intelligence.py",label="Open research command centre for QC, calibration and phenotype evidence",icon="🧭")
 left,right=st.columns([1.25,1])
 with left:
     st.subheader('Phenotype distribution')

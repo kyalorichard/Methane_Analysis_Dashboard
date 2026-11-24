@@ -94,6 +94,15 @@ if run:
         st.session_state["latest_integrated_analysis"]=result
         run_id=str(uuid.uuid4())
         result["manifest"]["run_id"]=run_id
+        from analysis_engine.research_intelligence import dataframe_fingerprint
+        result["manifest"]["dataset_fingerprint_sha256"]=dataframe_fingerprint(df)
+        result["manifest"]["measurement_protocol"]=st.session_state.get("measurement_protocol",{})
+        result["manifest"]["roles"]=roles
+        result["manifest"]["validation_design"]={
+            "ml_validation":"animal-grouped GroupKFold" if run_ml else "not run",
+            "animal_id":animal_id,"session_column":session_col,
+            "independent_unit":"animal" if animal_id else "record-level; independence not assured"
+        }
         try:
             save_run(run_id,result["manifest"],result["summary"])
             st.session_state["latest_run_registry_status"]="Saved to local SQLite run registry."

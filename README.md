@@ -64,3 +64,42 @@ Scientific safeguards are explicit: repeated records are aggregated to animal-le
 The platform accepts CSV (`.csv`) and Apache Parquet (`.parquet` / `.pq`) uploads. Excel (`.xlsx` / `.xls`) remains supported for backward compatibility. All newly uploaded datasets saved to persistent project storage are converted to Snappy-compressed Parquet before object storage. Scientific modules continue to receive pandas DataFrames. The dataset registry records the original source format, canonical storage format, canonical SHA-256, source-file SHA-256, schema, row count and QC summary.
 
 For existing deployments, re-apply `database/schema.sql` (or execute its additive `ALTER TABLE` statements) before using the updated project upload workflow. Existing CSV/Excel objects remain readable; new uploads are stored as Parquet.
+
+
+## Research intelligence enhancements (Release 1–4)
+
+This update adds a connected research command centre while retaining the existing analytical pages and engines.
+
+### Release 1 — User experience and workflow
+- Reorganised sidebar navigation into research-oriented groups.
+- Reworked the overview landing experience and added readiness indicators.
+- Added a guided eight-stage research pathway.
+- Added content-addressed dataset fingerprints based on dataframe values, schema and index.
+- Added clear scientific guardrails around animal-grouped validation and uncalibrated methane signals.
+
+### Release 2 — Measurement and phenotype evidence
+- Added study-level measurement metadata capture (instrument, method, units, calibration status, sampling frequency, SOP, reference and minimum duration).
+- Added a non-destructive row-level QC review queue for missingness, IQR outliers, optional non-negative constraints and minimum recording duration.
+- Added reference-based calibration regression, Bland–Altman bias and limits of agreement, MAE and RMSE.
+- Added a candidate phenotype evidence matrix with missingness, distribution summaries, repeated-animal context and association with recording duration.
+- Added rule-based analysis recommendations derived from dataset structure.
+
+### Release 3 — Advanced modelling and validation
+- Added nested animal-grouped regression cross-validation. Hyperparameter tuning is restricted to each outer training fold; outer folds provide the performance estimate.
+- Added optional nested validation controls to the ML benchmarking page.
+- Existing mixed-effects, GEE, repeatability, clustering, PCA, sensitivity and longitudinal modules remain available through the reorganised navigation.
+
+### Release 4 — Reproducibility and publication workflow
+- Added analysis-run comparison by stored manifest metadata and summaries.
+- Added dataset fingerprint, measurement protocol, mapped roles and validation design to integrated-analysis manifests.
+- Retained publication suite and integrated analysis ZIP outputs.
+- Added tests for the new research-intelligence functions.
+
+### Scientific interpretation and limitations
+- QC flags are review prompts; observations are not automatically deleted.
+- Negative-value checks are opt-in and should only be applied to variables whose documented measurement scale cannot be negative.
+- Calibration and Bland–Altman diagnostics require paired measurements of the same quantity in compatible units. Correlation alone is not agreement, and fitted calibration is not externally validated by this page.
+- The phenotype evidence matrix is exploratory. It does not calculate a universal phenotype score or certify biological validity.
+- Nested grouped CV reduces leakage from repeated animal records but does not replace external validation or independent cohort testing.
+- Analysis-run comparison only compares fields retained in the manifests and summaries.
+- A dataset-aware generative AI assistant, full consensus-clustering stability workflow, UMAP, GAM/quantile/allometric model catalogue and automated external validation are not implemented as validated features in this release. Existing modules may support parts of these analyses, but do not interpret a navigation entry as proof of method validation.
