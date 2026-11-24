@@ -56,7 +56,7 @@ def apply_style():
             background:linear-gradient(180deg,#123B35 0%,#0E302C 100%);
             border-right:1px solid rgba(255,255,255,.08);
         }
-        section[data-testid='stSidebar'] * {color:#F4FAF7;}
+        section[data-testid='stSidebar'] * {color:#173B34;}
         section[data-testid='stSidebar'] .stCaption,
         section[data-testid='stSidebar'] small {color:#C5D9D1 !important;}
         section[data-testid='stSidebar'] hr {border-color:rgba(255,255,255,.17);}
@@ -89,7 +89,7 @@ def apply_style():
         /* Selectbox labels stay white; selected values use dark text. */
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label p {
-            color:#173B34 !important;
+            color:#F4FAF7 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'],
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] > div {
@@ -361,7 +361,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stPageLink'] a {
             border-radius:9px;
             padding:7px 9px;
-            color:#173B34 !important;
+            color:#F4FAF7 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stPageLink'] a:hover {
             background:rgba(255,255,255,.12);
