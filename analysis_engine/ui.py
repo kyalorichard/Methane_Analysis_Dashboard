@@ -72,7 +72,7 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] label,
         section[data-testid='stSidebar'] [data-testid='stFileUploader'] label {
             font-weight:700;
-            color:#173B34 !important;
+            color:#F4FAF7 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stButton'] button {
             background:rgba(255,255,255,.11);
