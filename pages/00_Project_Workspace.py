@@ -5,6 +5,7 @@ import streamlit as st
 from analysis_engine.ui import header, metric_row, render_sidebar_navigation
 from platform_core.auth import require_principal
 from platform_core.database import configured
+from platform_core import local_workspace
 from platform_core.workspace import (
     list_projects, create_project, save_dataset, list_datasets, load_dataset,
     get_project, duplicate_project, create_project_version, list_project_versions,
@@ -17,12 +18,25 @@ from platform_core.data_governance import inspect_dataset
 
 render_sidebar_navigation()
 principal = require_principal()
+# Local-first mode is the default when cloud persistence is not fully configured.
+# Set PROJECT_STORAGE_BACKEND=local|cloud to choose explicitly.
+_backend = __import__('os').getenv('PROJECT_STORAGE_BACKEND', 'cloud' if (configured() and __import__('os').getenv('S3_BUCKET')) else 'local').lower()
+if _backend not in {'local', 'cloud'}:
+    st.error("PROJECT_STORAGE_BACKEND must be 'local' or 'cloud'.")
+    st.stop()
+if _backend == 'local':
+    list_projects, create_project, save_dataset, list_datasets, load_dataset, get_project, duplicate_project, create_project_version, list_project_versions = (
+        local_workspace.list_projects, local_workspace.create_project, local_workspace.save_dataset,
+        local_workspace.list_datasets, local_workspace.load_dataset, local_workspace.get_project,
+        local_workspace.duplicate_project, local_workspace.create_project_version, local_workspace.list_project_versions,
+    )
 st.session_state["user_id"] = principal.subject
 header("Project workspace", "Create, import, manage, version and resume tenant-scoped livestock research projects.", badge="PROJECT LIFECYCLE")
 
-if not configured():
-    st.warning("Persistent project workspace is not connected. Configure DATABASE_URL, apply database/schema.sql, and configure S3_BUCKET with write/read permissions. Local analysis remains available, but project persistence and portable project import/export are disabled.")
+if _backend == 'cloud' and not configured():
+    st.error("Cloud project storage was selected, but DATABASE_URL is not configured. Set PROJECT_STORAGE_BACKEND=local to use the built-in SQLite + filesystem workspace.")
     st.stop()
+st.caption(f"Storage backend: {'Local SQLite + filesystem' if _backend == 'local' else 'PostgreSQL + S3'}")
 
 try:
     projects = list_projects(principal.tenant_id, principal.subject)
