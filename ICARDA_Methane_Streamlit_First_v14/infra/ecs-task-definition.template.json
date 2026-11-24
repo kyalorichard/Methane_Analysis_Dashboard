@@ -1,0 +1,158 @@
+{
+  "family": "icarda-methane-platform",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "2048",
+  "memory": "4096",
+  "executionRoleArn": "${ECS_EXECUTION_ROLE_ARN}",
+  "taskRoleArn": "${APP_TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "streamlit",
+      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/icarda-methane-platform:${IMAGE_TAG}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8501,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "AUTH_MODE",
+          "value": "entra_proxy"
+        },
+        {
+          "name": "S3_BUCKET",
+          "value": "${S3_BUCKET}"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "${AWS_REGION}"
+        },
+        {
+          "name": "TRUSTED_EMAIL_HEADER",
+          "value": "X-Auth-Request-Email"
+        },
+        {
+          "name": "TRUSTED_USER_HEADER",
+          "value": "X-Auth-Request-User"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "INTERNAL_API_TOKEN",
+          "valueFrom": "${INTERNAL_API_TOKEN_SECRET_ARN}"
+        },
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "${DATABASE_URL_SECRET_ARN}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/icarda-methane",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "streamlit"
+        }
+      }
+    },
+    {
+      "name": "oauth2-proxy",
+      "image": "quay.io/oauth2-proxy/oauth2-proxy:v7.8.1",
+      "essential": true,
+      "dependsOn": [
+        {
+          "containerName": "streamlit",
+          "condition": "START"
+        }
+      ],
+      "portMappings": [
+        {
+          "containerPort": 4180,
+          "protocol": "tcp"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "OAUTH2_PROXY_CLIENT_SECRET",
+          "valueFrom": "${ENTRA_CLIENT_SECRET_ARN}"
+        },
+        {
+          "name": "OAUTH2_PROXY_COOKIE_SECRET",
+          "valueFrom": "${OAUTH_COOKIE_SECRET_ARN}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/icarda-methane",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "oauth2-proxy"
+        }
+      },
+      "environment": [
+        {
+          "name": "OAUTH2_PROXY_PROVIDER",
+          "value": "oidc"
+        },
+        {
+          "name": "OAUTH2_PROXY_OIDC_ISSUER_URL",
+          "value": "https://login.microsoftonline.com/${ENTRA_TENANT_ID}/v2.0"
+        },
+        {
+          "name": "OAUTH2_PROXY_OIDC_USER_ID_CLAIM",
+          "value": "oid"
+        },
+        {
+          "name": "OAUTH2_PROXY_CLIENT_ID",
+          "value": "${ENTRA_CLIENT_ID}"
+        },
+        {
+          "name": "OAUTH2_PROXY_REDIRECT_URL",
+          "value": "https://${APP_DOMAIN}/oauth2/callback"
+        },
+        {
+          "name": "OAUTH2_PROXY_UPSTREAMS",
+          "value": "http://127.0.0.1:8501/"
+        },
+        {
+          "name": "OAUTH2_PROXY_HTTP_ADDRESS",
+          "value": "0.0.0.0:4180"
+        },
+        {
+          "name": "OAUTH2_PROXY_REVERSE_PROXY",
+          "value": "true"
+        },
+        {
+          "name": "OAUTH2_PROXY_EMAIL_DOMAINS",
+          "value": "${ALLOWED_EMAIL_DOMAIN}"
+        },
+        {
+          "name": "OAUTH2_PROXY_SET_XAUTHREQUEST",
+          "value": "true"
+        },
+        {
+          "name": "OAUTH2_PROXY_PASS_USER_HEADERS",
+          "value": "true"
+        },
+        {
+          "name": "OAUTH2_PROXY_COOKIE_SECURE",
+          "value": "true"
+        },
+        {
+          "name": "OAUTH2_PROXY_COOKIE_HTTPONLY",
+          "value": "true"
+        },
+        {
+          "name": "OAUTH2_PROXY_COOKIE_SAMESITE",
+          "value": "lax"
+        }
+      ]
+    }
+  ],
+  "volumes": []
+}

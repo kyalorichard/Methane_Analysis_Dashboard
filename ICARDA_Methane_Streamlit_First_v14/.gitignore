@@ -1,0 +1,13 @@
+
+.env
+.env.*
+!.env.production.example
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Local analysis-run registry and local workspace data
+platform_data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
