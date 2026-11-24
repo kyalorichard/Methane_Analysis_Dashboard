@@ -39,3 +39,22 @@ def test_allometric_requires_one_numeric_positive_predictor():
     out=compare_grouped_models(d,"methane",["weight"],"animal",
         selected_models=["OLS (linear regression)","Allometric power-law regression"],n_splits=3,n_boot=20)
     assert out["metrics"].query("model == 'Allometric power-law regression'").iloc[0].status=="completed"
+
+
+def test_nested_grouped_hyperparameter_tuning_uses_inner_group_cv():
+    d=make_data(seed=29)
+    out=compare_grouped_models(d,"methane",["weight","age"],"animal",
+        selected_models=["OLS (linear regression)","Random Forest"],
+        n_splits=3,n_boot=20,random_state=13,tune_models=True,tuning_iter=2)
+    assert out["metrics"].status.eq("completed").all()
+    assert len(out["tuned_parameters"]["Random Forest"])==3
+    assert all("model__n_estimators" in fold for fold in out["tuned_parameters"]["Random Forest"])
+
+
+def test_grid_search_is_nested_with_grouped_outer_validation():
+    d=make_data(seed=37)
+    out=compare_grouped_models(d,"methane",["weight","age"],"animal",
+        selected_models=["OLS (linear regression)","KNN"],n_splits=3,n_boot=10,
+        tuning_method="grid",tune_models=True)
+    assert out["metrics"].status.eq("completed").all()
+    assert len(out["tuned_parameters"]["KNN"])==3

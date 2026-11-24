@@ -143,3 +143,11 @@ Release 6.5 adds explicit study-level phenotype mapping and provenance, user-spe
 
 ## Release 6.6 — Conventional statistics versus machine learning
 Release 6.6 adds a matched grouped-cross-validation comparison in `pages/34_Advanced_ML_Explainability.py`. The workflow compares OLS, GEE, random-intercept mixed-effects, spline-basis, median quantile and eligible allometric regression against selected ML estimators on identical grouped folds. It reports out-of-fold metrics, paired group-bootstrap RMSE difference intervals and downloadable prediction-level results. This is a predictive benchmark; see `docs/RELEASE_6_6_STATISTICAL_ML_COMPARISON.md` for assumptions and limitations.
+
+
+## Release 6.7 — Analysis and model settings
+Release 6.7 adds a central model configuration page (`pages/36_Analysis_Model_Settings.py`) for grouped validation settings and hyperparameters of Random Forest, Extra Trees, HistGradientBoosting, SVR and KNN. Settings can be exported/imported as JSON. They are session-scoped and currently feed the matched conventional-versus-ML comparison on page 34; other analysis pages retain their own controls. See `docs/RELEASE_6_7_MODEL_SETTINGS.md`.
+
+
+## Release 6.8 — Persistent settings and experiment management
+Release 6.8 adds a SQLite-backed settings registry scoped by user, project/study and species; nested GroupKFold random-search optimisation for supported ML estimators; conventional-model controls for GEE working correlation, mixed-effects ML/REML, quantile level and spline knots; and an experiment registry that stores configurations, metrics and paired comparisons. Set `ANALYSIS_REGISTRY_PATH` to a durable path. In production, connect user scope to the authenticated identity and use durable shared storage for multi-instance deployments. See `docs/RELEASE_6_8_PERSISTENT_SETTINGS_EXPERIMENTS.md`.

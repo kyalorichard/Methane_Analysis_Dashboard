@@ -18,7 +18,7 @@ from analysis_engine.release6 import grouped_learning_curve, feature_selection_s
 from analysis_engine.research_hardening import CLASSIFIERS, grouped_classification_benchmark
 
 render_sidebar_navigation()
-header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.", badge="RELEASE 6.6")
+header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.", badge="RELEASE 6.8")
 df=get_data(); roles=get_roles(df); nums=numeric_cols(df)
 if len(df)<10:
     st.warning("Load a dataset with sufficient observations before running advanced ML workflows.")
@@ -137,11 +137,14 @@ st.caption("Matched out-of-fold predictive comparison using identical GroupKFold
 from analysis_engine.model_comparison import compare_grouped_models, ML_MODELS
 comparison_catalogue=["OLS (linear regression)","GEE (exchangeable; marginal prediction)","Mixed-effects model (random intercept; fixed-effect prediction)","Spline regression (GAM-like)","Quantile regression (median)","Allometric power-law regression"]+list(ML_MODELS)
 compare_models=st.multiselect("Models to compare",comparison_catalogue,default=["OLS (linear regression)","GEE (exchangeable; marginal prediction)","Mixed-effects model (random intercept; fixed-effect prediction)","Spline regression (GAM-like)","Quantile regression (median)","Random Forest","Extra Trees","SVR"],key="r64_compare_models")
-compare_folds=st.slider("Matched grouped CV folds",3,min(8,max(3,int(groups.nunique()))),min(5,max(3,int(groups.nunique()))),key="r64_compare_folds")
-compare_boot=st.select_slider("Group-bootstrap replicates for paired RMSE differences",options=[200,500,1000,2000],value=500,key="r64_compare_boot")
+_settings = st.session_state.get("analysis_settings", {})
+_compare_cfg = _settings.get("comparison", {})
+compare_folds=st.slider("Matched grouped CV folds",3,min(8,max(3,int(groups.nunique()))),min(int(_compare_cfg.get("n_splits",5)),max(3,int(groups.nunique()))),key="r64_compare_folds")
+compare_boot=st.select_slider("Group-bootstrap replicates for paired RMSE differences",options=[200,500,1000,2000,5000],value=int(_compare_cfg.get("n_boot",500)),key="r64_compare_boot")
+st.caption("Model hyperparameters are configured in Settings → Analysis & model settings. Changes are applied when you rerun this benchmark.")
 if st.button("Run matched statistical-versus-ML benchmark",key="r64_compare_run",disabled=len(compare_models)<2):
     try:
-        result=compare_grouped_models(df,outcome,features,animal,selected_models=compare_models,n_splits=compare_folds,n_boot=compare_boot,random_state=int(seed))
+        result=compare_grouped_models(df,outcome,features,animal,selected_models=compare_models,n_splits=compare_folds,n_boot=compare_boot,random_state=int(_compare_cfg.get("random_state",seed)),model_parameters=_settings.get("models",{}),preprocessing=_settings.get("preprocessing",{}),tune_models=bool(_compare_cfg.get("tune_models",False)),tuning_iter=int(_compare_cfg.get("tuning_iter",12)),tuning_method=str(_compare_cfg.get("tuning_method","random")),conventional_parameters=_settings.get("conventional",{}))
         st.session_state["r64_model_comparison"]=result
     except Exception as e: st.error(f"Model comparison failed: {type(e).__name__}: {e}")
 if "r64_model_comparison" in st.session_state:
@@ -160,6 +163,31 @@ if "r64_model_comparison" in st.session_state:
     st.download_button("Download paired RMSE comparisons",result["paired_comparisons"].to_csv(index=False).encode(),"paired_group_bootstrap_rmse.csv")
     st.download_button("Download out-of-fold predictions",result["oof_predictions"].to_csv(index=False).encode(),"matched_model_oof_predictions.csv")
     st.info(result["interpretation"])
+    st.divider()
+    st.markdown("**Save this analysis as a reproducible experiment**")
+    exp_name = st.text_input("Experiment name", value="Methane model comparison", key="r68_exp_name")
+    exp_project = st.text_input("Project / study identifier", value=st.session_state.get("analysis_project_scope", "default-project"), key="r68_exp_project")
+    exp_species = st.selectbox("Species", ["all", "cattle", "sheep", "goats", "other"], key="r68_exp_species")
+    if st.button("Save experiment to registry", key="r68_save_experiment"):
+        try:
+            from analysis_engine.experiment_registry import save_experiment
+            _uid = str(st.session_state.get("user_id") or st.session_state.get("username") or st.session_state.get("email") or "local-user")
+            _cfg = {"settings": _settings, "outcome": outcome, "predictors": features, "grouping_unit": animal, "selected_models": compare_models, "folds": compare_folds, "bootstrap_replicates": compare_boot}
+            import hashlib, sklearn
+            _analysis_frame = df[[outcome, animal] + list(features)].copy()
+            _fingerprint = hashlib.sha256(pd.util.hash_pandas_object(_analysis_frame, index=True).values.tobytes()).hexdigest()
+            _meta = {"n_records": result["n_records"], "n_groups": result["n_groups"], "dataset_columns": list(df.columns), "dataset_fingerprint_sha256": _fingerprint, "scikit_learn_version": sklearn.__version__, "pandas_version": pd.__version__, "interpretation": result["interpretation"]}
+            exp_id = save_experiment(_uid, exp_project.strip() or "default-project", exp_species, exp_name, _cfg, result["metrics"].to_dict("records"), result["paired_comparisons"].to_dict("records"), _meta)
+            st.success(f"Experiment saved. Registry ID: {exp_id}")
+        except Exception as exc: st.error(f"Could not save experiment: {type(exc).__name__}: {exc}")
+    try:
+        from analysis_engine.experiment_registry import list_experiments
+        _uid = str(st.session_state.get("user_id") or st.session_state.get("username") or st.session_state.get("email") or "local-user")
+        _saved = list_experiments(_uid, limit=20)
+        if _saved:
+            st.markdown("**Recent saved experiments**")
+            st.dataframe(pd.DataFrame([{k:v for k,v in e.items() if k not in ("metrics","metadata")} for e in _saved]), use_container_width=True, hide_index=True)
+    except Exception as exc: st.caption(f"Experiment registry unavailable: {exc}")
 
 st.divider(); st.subheader("6. Independent external validation")
 st.caption("Upload an independent cohort. The model is fitted only on the active development dataset and evaluated on the uploaded external dataset without refitting. Ensure identical variable definitions, units, instruments and outcome protocol.")

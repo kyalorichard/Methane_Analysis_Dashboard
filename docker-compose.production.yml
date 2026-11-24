@@ -58,12 +58,17 @@ services:
     env_file: .env
     depends_on: [api]
     ports: ["8501:8501"]
+    environment:
+      ANALYSIS_REGISTRY_PATH: /app/data/analysis_registry.sqlite3
+    volumes:
+      - analysis_registry_data:/app/data
     networks: [backend]
 
 volumes:
   postgres_data:
   redis_data:
   object_data:
+  analysis_registry_data:
 
 networks:
   backend:

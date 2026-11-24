@@ -80,6 +80,7 @@ with st.sidebar:
         ("STATISTICS, ML & MULTIVARIATE", [("Statistical models","pages/03_Statistical_Models.py","📐"),("ML benchmarking","pages/04_ML_Benchmarking.py","🤖"),("Research model lab","pages/25_Research_Model_Lab.py","🧬"),("Clustering & PCA","pages/05_Clustering_PCA.py","🧩"),("Explainability","pages/09_Explainability.py","💡"),("Advanced analysis","pages/11_Advanced_Analysis.py","🧪"),("Sensitivity & robustness","pages/12_Sensitivity_Robustness.py","🛡️"),("Equivalence analysis","pages/13_Equivalence_Analysis.py","↔️")]),
         ("LONGITUDINAL ANALYSIS", [("Longitudinal analysis","pages/10_Longitudinal_Analysis.py","🗓️"),("Emitter tracking","pages/20_Longitudinal_Emitter_Tracking.py","📈")]),
         ("RELEASE 6 INTEGRATION", [("Release 6 research integration","pages/32_Release_6_Research_Integration.py","🧬"),("Reliability & agreement","pages/33_Reliability_and_Agreement.py","🔁"),("Advanced ML & explainability","pages/34_Advanced_ML_Explainability.py","🤖")]),
+        ("MODEL CONFIGURATION", [("Analysis & model settings","pages/36_Analysis_Model_Settings.py","⚙️")]),
         ("OUTPUTS & GOVERNANCE", [("Reports & exports","pages/15_Reports_Exports.py","📄"),("Publication suite","pages/27_Scientific_Publication_Suite.py","📚"),("Analysis run history","pages/26_Analysis_Run_History.py","🕘"),("Compare analysis runs","pages/29_Analysis_Comparison.py","🧾"),("Scientific workbench","pages/17_Scientific_Analysis_Workbench.py","🧰")]),
     ]
     for group, links in nav_groups:
