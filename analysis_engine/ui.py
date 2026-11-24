@@ -101,8 +101,8 @@ def apply_style():
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] *,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] input,
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] span {
-            color:black !important;
-            -webkit-text-fill-color:black !important;
+            color:#173B34 !important;
+            -webkit-text-fill-color:#173B34 !important;
             opacity:1 !important;
         }
         section[data-testid='stSidebar'] [data-testid='stSelectbox'] [data-baseweb='select'] svg {
@@ -115,7 +115,7 @@ def apply_style():
         body div[data-baseweb='popover'] ul,
         body div[data-baseweb='menu'],
         body ul[data-testid='stSelectboxVirtualDropdown'] {
-            background-color:#FFFFFF !important;
+            background-color:#DDEFE7 !important;
             color:#173B34 !important;
             color-scheme:light !important;
         }
