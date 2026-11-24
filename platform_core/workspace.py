@@ -157,3 +157,47 @@ def list_project_versions(tenant_id: str, subject: str, project_id: str):
         _assert_project_access(session,tenant_id,project_id,uid,write=False)
         rows=session.execute(text("SELECT version_number,snapshot_json,created_at FROM project_versions WHERE tenant_id=:tid AND project_id=:pid ORDER BY version_number DESC"),{'tid':tenant_id,'pid':project_id}).mappings().all()
     return [dict(x) for x in rows]
+
+
+def save_dataset_configuration(tenant_id: str, subject: str, project_id: str, dataset_id: str,
+                               species: str, variable_mapping: dict, measurement_protocol: dict):
+    """Persist dataset-scoped species and measurement configuration in protocol_json."""
+    payload = {
+        'configuration_version': 1,
+        'species': species,
+        'variable_mapping': variable_mapping or {},
+        'measurement_protocol': measurement_protocol or {},
+    }
+    with tenant_session(tenant_id) as session:
+        uid = _user_id(session, subject)
+        _assert_project_access(session, tenant_id, project_id, uid, write=True)
+        row = session.execute(text('SELECT protocol_json FROM datasets WHERE tenant_id=:tid AND project_id=:pid AND id=:did'),
+                              {'tid': tenant_id, 'pid': project_id, 'did': dataset_id}).mappings().first()
+        if not row:
+            raise PermissionError('Dataset is not available in this project.')
+        existing = row.get('protocol_json') or {}
+        existing.update(payload)
+        session.execute(text('UPDATE datasets SET species=:species, protocol_json=CAST(:protocol AS jsonb) WHERE tenant_id=:tid AND project_id=:pid AND id=:did'),
+                        {'species': species, 'protocol': json.dumps(existing), 'tid': tenant_id, 'pid': project_id, 'did': dataset_id})
+        session.execute(text("INSERT INTO audit_events(tenant_id,user_id,action,resource_type,resource_id,details) VALUES (:tid,:uid,'dataset.configuration.updated','dataset',:did,CAST(:details AS jsonb))"),
+                        {'tid': tenant_id, 'uid': uid, 'did': dataset_id, 'details': json.dumps({'species': species, 'configuration_version': 1})})
+    return payload
+
+
+def get_dataset_configuration(tenant_id: str, subject: str, project_id: str, dataset_id: str):
+    with tenant_session(tenant_id) as session:
+        uid = _user_id(session, subject)
+        _assert_project_access(session, tenant_id, project_id, uid, write=False)
+        row = session.execute(text('SELECT species, protocol_json FROM datasets WHERE tenant_id=:tid AND project_id=:pid AND id=:did'),
+                              {'tid': tenant_id, 'pid': project_id, 'did': dataset_id}).mappings().first()
+    if not row:
+        raise PermissionError('Dataset is not available in this project.')
+    stored = row.get('protocol_json') or {}
+    return {
+        'species': stored.get('species') or row['species'],
+        'variable_mapping': stored.get('variable_mapping') or {},
+        'measurement_protocol': stored.get('measurement_protocol') or {
+            k: v for k, v in stored.items() if k not in {'configuration_version', 'species', 'variable_mapping'}
+        },
+        'configuration_version': stored.get('configuration_version', 0),
+    }

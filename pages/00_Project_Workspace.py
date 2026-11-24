@@ -144,8 +144,18 @@ with manage_tab:
             st.session_state["active_project_id"] = project_id
             st.session_state["analysis_project_scope"] = project["name"]
             from platform_core.species import infer_species_roles
-            st.session_state["roles"] = infer_species_roles(df.columns, species)
-            st.success("Dataset restored into the analysis workspace. Open the analytical modules from the navigation menu.")
+            saved_config = store.get_dataset_configuration(principal.tenant_id, principal.subject, project_id, selected["id"])
+            st.session_state["species"] = saved_config.get("species") or species
+            st.session_state["roles"] = saved_config.get("variable_mapping") or infer_species_roles(df.columns, species)
+            protocol = saved_config.get("measurement_protocol") or {}
+            st.session_state["measurement_protocol"] = protocol
+            st.session_state["protocol_instrument"] = protocol.get("instrument", "")
+            st.session_state["protocol_method"] = protocol.get("method", "Not specified")
+            st.session_state["protocol_units"] = protocol.get("units", "")
+            st.session_state["protocol_calibration"] = protocol.get("calibration_status", "Not documented")
+            st.session_state["protocol_ref"] = protocol.get("protocol_reference", "")
+            st.session_state["protocol_min_duration"] = protocol.get("minimum_recording_duration_seconds", 0.0)
+            st.success("Dataset restored with its saved species, variable mapping and measurement protocol. Open the analytical modules from the navigation menu.")
     else:
         st.info("This project has no stored datasets yet. Upload the study data in the Datasets & protocols tab.")
 

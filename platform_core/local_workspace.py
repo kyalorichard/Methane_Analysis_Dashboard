@@ -82,3 +82,45 @@ def list_project_versions(tenant_id,subject,project_id):
     with _connect() as c:
         _project(c,tenant_id,project_id,subject)
         return [{'version_number':r['version_number'],'snapshot_json':json.loads(r['snapshot_json']),'created_at':r['created_at']} for r in c.execute('SELECT * FROM versions WHERE tenant_id=? AND project_id=? ORDER BY version_number DESC',(tenant_id,project_id))]
+
+
+def save_dataset_configuration(tenant_id, subject, project_id, dataset_id, species, variable_mapping, measurement_protocol):
+    """Persist species, variable-role mapping and protocol against one project dataset."""
+    payload = {
+        'configuration_version': 1,
+        'species': species,
+        'variable_mapping': variable_mapping or {},
+        'measurement_protocol': measurement_protocol or {},
+        'updated_at': _now(),
+    }
+    with _connect() as c:
+        _project(c, tenant_id, project_id, subject)
+        row = c.execute('SELECT protocol_json FROM datasets WHERE tenant_id=? AND project_id=? AND id=?',
+                        (tenant_id, project_id, dataset_id)).fetchone()
+        if row is None:
+            raise PermissionError('Dataset is not available in this project.')
+        existing = json.loads(row['protocol_json'] or '{}')
+        existing.update(payload)
+        c.execute('UPDATE datasets SET species=?, protocol_json=? WHERE tenant_id=? AND project_id=? AND id=?',
+                  (species, json.dumps(existing), tenant_id, project_id, dataset_id))
+    return payload
+
+
+def get_dataset_configuration(tenant_id, subject, project_id, dataset_id):
+    with _connect() as c:
+        _project(c, tenant_id, project_id, subject)
+        row = c.execute('SELECT species, protocol_json FROM datasets WHERE tenant_id=? AND project_id=? AND id=?',
+                        (tenant_id, project_id, dataset_id)).fetchone()
+    if row is None:
+        raise PermissionError('Dataset is not available in this project.')
+    stored = json.loads(row['protocol_json'] or '{}')
+    # Backward compatibility: pre-configuration releases stored protocol fields at the top level.
+    return {
+        'species': stored.get('species') or row['species'],
+        'variable_mapping': stored.get('variable_mapping') or {},
+        'measurement_protocol': stored.get('measurement_protocol') or {
+            k: v for k, v in stored.items() if k not in {'configuration_version', 'updated_at', 'species', 'variable_mapping'}
+        },
+        'configuration_version': stored.get('configuration_version', 0),
+        'updated_at': stored.get('updated_at'),
+    }
