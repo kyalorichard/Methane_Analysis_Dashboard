@@ -140,3 +140,6 @@ Release 6.4 adds an external cohort schema/identifier audit and predictor distri
 
 ## Release 6.5 — Multi-study harmonisation and meta-analysis
 Release 6.5 adds explicit study-level phenotype mapping and provenance, user-specified unit conversion, protocol comparability auditing, and DerSimonian–Laird random-effects synthesis of supplied independent study effects. The workflow is available in `pages/35_Multi_Study_Harmonisation_Meta_Analysis.py`. Cross-species pooling is not automatic: phenotype definition, units, measurement method, instrument, calibration and estimand must be justified. See `docs/RELEASE_6_5_MULTI_STUDY_HARMONISATION.md`.
+
+## Release 6.6 — Conventional statistics versus machine learning
+Release 6.6 adds a matched grouped-cross-validation comparison in `pages/34_Advanced_ML_Explainability.py`. The workflow compares OLS, GEE, random-intercept mixed-effects, spline-basis, median quantile and eligible allometric regression against selected ML estimators on identical grouped folds. It reports out-of-fold metrics, paired group-bootstrap RMSE difference intervals and downloadable prediction-level results. This is a predictive benchmark; see `docs/RELEASE_6_6_STATISTICAL_ML_COMPARISON.md` for assumptions and limitations.

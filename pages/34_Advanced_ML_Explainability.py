@@ -18,7 +18,7 @@ from analysis_engine.release6 import grouped_learning_curve, feature_selection_s
 from analysis_engine.research_hardening import CLASSIFIERS, grouped_classification_benchmark
 
 render_sidebar_navigation()
-header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.", badge="RELEASE 6.2")
+header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.", badge="RELEASE 6.6")
 df=get_data(); roles=get_roles(df); nums=numeric_cols(df)
 if len(df)<10:
     st.warning("Load a dataset with sufficient observations before running advanced ML workflows.")
@@ -132,21 +132,34 @@ if "r62_conformal" in st.session_state:
     summary,res=st.session_state["r62_conformal"]; st.json(summary); st.dataframe(res,use_container_width=True,hide_index=True)
     st.download_button("Download prediction intervals",res.to_csv(index=False).encode(),"group_split_conformal_intervals.csv")
 
-st.divider(); st.subheader("5. Conventional statistics versus ML")
-st.caption("Compares an ordinary least-squares linear model with a selected ML estimator using identical animal-grouped folds and the same predictors. This is a predictive benchmark, not a comparison of causal estimands or inferential validity.")
-compare_model=st.selectbox("ML comparator",list(REGRESSORS),index=list(REGRESSORS).index("Extra Trees") if "Extra Trees" in REGRESSORS else 0,key="r62_compare_model")
-if st.button("Run conventional-versus-ML comparison",key="r62_compare_run"):
+st.divider(); st.subheader("5. Conventional statistics versus machine learning")
+st.caption("Matched out-of-fold predictive comparison using identical GroupKFold partitions, predictors and independent grouping units. Conventional models include OLS, GEE, random-intercept mixed-effects, spline, median quantile and allometric regression; ML models include tree ensembles, boosting, SVR and KNN. This is predictive benchmarking, not a ranking of inferential validity or causal estimands.")
+from analysis_engine.model_comparison import compare_grouped_models, ML_MODELS
+comparison_catalogue=["OLS (linear regression)","GEE (exchangeable; marginal prediction)","Mixed-effects model (random intercept; fixed-effect prediction)","Spline regression (GAM-like)","Quantile regression (median)","Allometric power-law regression"]+list(ML_MODELS)
+compare_models=st.multiselect("Models to compare",comparison_catalogue,default=["OLS (linear regression)","GEE (exchangeable; marginal prediction)","Mixed-effects model (random intercept; fixed-effect prediction)","Spline regression (GAM-like)","Quantile regression (median)","Random Forest","Extra Trees","SVR"],key="r64_compare_models")
+compare_folds=st.slider("Matched grouped CV folds",3,min(8,max(3,int(groups.nunique()))),min(5,max(3,int(groups.nunique()))),key="r64_compare_folds")
+compare_boot=st.select_slider("Group-bootstrap replicates for paired RMSE differences",options=[200,500,1000,2000],value=500,key="r64_compare_boot")
+if st.button("Run matched statistical-versus-ML benchmark",key="r64_compare_run",disabled=len(compare_models)<2):
     try:
-        cv=GroupKFold(n_splits=min(5,groups.nunique())); rows=[]
-        estimators={"OLS (linear statistical baseline)":Pipeline([("prep",clone(prep)),("model",LinearRegression())]),compare_model:Pipeline([("prep",clone(prep)),("model",clone(REGRESSORS[compare_model]))])}
-        for name,est in estimators.items():
-            pred=cross_val_predict(est,X,y,groups=groups,cv=cv,n_jobs=-1)
-            rows.append({"model":name,"RMSE":float(np.sqrt(mean_squared_error(y,pred))),"MAE":float(mean_absolute_error(y,pred)),"R2":float(r2_score(y,pred)),"n_records":len(y),"n_groups":groups.nunique()})
-        out=pd.DataFrame(rows); st.session_state["r62_conventional_ml"]=out
-    except Exception as e: st.error(str(e))
-if "r62_conventional_ml" in st.session_state:
-    q=st.session_state["r62_conventional_ml"]; st.dataframe(q,use_container_width=True,hide_index=True)
-    st.download_button("Download comparison",q.to_csv(index=False).encode(),"conventional_vs_ml.csv")
+        result=compare_grouped_models(df,outcome,features,animal,selected_models=compare_models,n_splits=compare_folds,n_boot=compare_boot,random_state=int(seed))
+        st.session_state["r64_model_comparison"]=result
+    except Exception as e: st.error(f"Model comparison failed: {type(e).__name__}: {e}")
+if "r64_model_comparison" in st.session_state:
+    result=st.session_state["r64_model_comparison"]
+    st.markdown("**Out-of-fold predictive performance**")
+    st.dataframe(result["metrics"],use_container_width=True,hide_index=True)
+    valid=result["metrics"].query("status == 'completed'")
+    if len(valid):
+        st.plotly_chart(px.bar(valid.sort_values("RMSE"),x="model",y="RMSE",color="model_family",title="Matched grouped-CV RMSE (lower is better)"),use_container_width=True)
+    st.markdown("**Paired group-bootstrap comparison of RMSE**")
+    st.caption("Difference is RMSE(model A) minus RMSE(model B). Negative values favour A; positive values favour B. Confidence intervals are percentile intervals from resampling independent groups.")
+    st.dataframe(result["paired_comparisons"],use_container_width=True,hide_index=True)
+    st.markdown("**Out-of-fold predictions**")
+    st.dataframe(result["oof_predictions"].head(500),use_container_width=True,hide_index=True)
+    st.download_button("Download model metrics",result["metrics"].to_csv(index=False).encode(),"matched_model_comparison_metrics.csv")
+    st.download_button("Download paired RMSE comparisons",result["paired_comparisons"].to_csv(index=False).encode(),"paired_group_bootstrap_rmse.csv")
+    st.download_button("Download out-of-fold predictions",result["oof_predictions"].to_csv(index=False).encode(),"matched_model_oof_predictions.csv")
+    st.info(result["interpretation"])
 
 st.divider(); st.subheader("6. Independent external validation")
 st.caption("Upload an independent cohort. The model is fitted only on the active development dataset and evaluated on the uploaded external dataset without refitting. Ensure identical variable definitions, units, instruments and outcome protocol.")
