@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import importlib.util
 from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
-from analysis_engine.time_series_forecasting import prepare_series, compare_forecasters
+from analysis_engine.service_registry import get_service
 from analysis_engine.settings_config import load_active_settings
 
 render_sidebar_navigation()
@@ -63,7 +63,7 @@ with st.expander("Model configuration"):
 
 if st.button("Prepare time series", type="secondary"):
     try:
-        series = prepare_series(df, date_col, target, freq, animal if animal else None,
+        series = get_service("prepare_forecast_series")(df, date_col, target, freq, animal if animal else None,
                                 animal_value, aggregation)
         st.session_state["forecast_series"] = series
         st.session_state["forecast_meta"] = {"target":target,"date":date_col,"frequency":freq,"scope":animal_value}
@@ -81,7 +81,7 @@ if series is not None:
     if st.button("Run forecasting comparison", type="primary", disabled=not models):
         try:
             with st.spinner("Fitting forecasting models and evaluating the chronological holdout..."):
-                result = compare_forecasters(series, models=models, test_fraction=test_fraction,
+                result = get_service("compare_forecasters")(series, models=models, test_fraction=test_fraction,
                     arima_order=(int(p),int(d),int(q)), future_periods=int(horizon), frequency=freq,
                     lstm_lookback=int(lookback), lstm_epochs=int(epochs),
                     seasonal_order=(int(seasonal_p),0,1,int(seasonal_period)),

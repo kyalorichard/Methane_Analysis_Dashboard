@@ -4,9 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from analysis_engine.ui import header, get_data, get_roles
-from analysis_engine.advanced import (repeatability_icc, bootstrap_icc, bland_altman,
-    group_comparison, fit_allometry, fit_quantile_regression, duration_sensitivity,
-    tost_independent, cluster_stability)
+from analysis_engine.service_registry import get_service
 from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
 
@@ -40,8 +38,8 @@ with tabs[0]:
     with c2: y=pick("Continuous phenotype",numeric,methane,"wb_icc_y")
     if st.button("Estimate ICC",key="wb_run_icc",type="primary"):
         try:
-            result=repeatability_icc(df,aid,y)
-            boot=bootstrap_icc(df,aid,y,n_boot=300)
+            result=get_service("repeatability_long_format")(df,aid,y)
+            boot=get_service("bootstrap_icc")(df,aid,y,n_boot=300)
             st.session_state["wb_icc_result"]={**result,"bootstrap":boot,"phenotype":y,"animal_id":aid}
             st.json(st.session_state["wb_icc_result"])
             st.metric("ICC(1,1)",f"{result['ICC_single']:.3f}")
@@ -60,7 +58,7 @@ with tabs[0]:
         sb=st.selectbox("Session B",levels,index=1 if len(levels)>1 else 0,key="wb_ba_b") if levels else None
     if st.button("Calculate agreement",key="wb_run_ba"):
         try:
-            pts,summary=bland_altman(df,baid,by,sess,sa,sb)
+            pts,summary=get_service("bland_altman")(df,baid,by,sess,sa,sb)
             st.json(summary)
             fig=px.scatter(pts,x="animal_mean",y="difference_b_minus_a",labels={"animal_mean":"Mean of paired sessions","difference_b_minus_a":"B − A"})
             fig.add_hline(y=summary["bias"],line_dash="solid")
@@ -78,7 +76,7 @@ with tabs[1]:
     with c3: method=st.selectbox("Test",["auto","welch","kruskal"],key="wb_group_method")
     if st.button("Run group comparison",key="wb_group_run",type="primary"):
         try:
-            res=group_comparison(df,gy,gc,method)
+            res=get_service("group_comparison")(df,gy,gc,method)
             st.json(res)
             if "pairwise_mann_whitney" in res and res["pairwise_mann_whitney"]:
                 st.dataframe(pd.DataFrame(res["pairwise_mann_whitney"]),use_container_width=True)
@@ -96,7 +94,7 @@ with tabs[2]:
     with c3: ac=pick("Optional adjustment variable",allcols,None,"wb_allom_cov")
     if st.button("Fit log–log allometric model",key="wb_allom_run"):
         try:
-            fit=fit_allometry(df,ay,aw,[ac] if ac else [])
+            fit=get_service("fit_allometry")(df,ay,aw,[ac] if ac else [])
             st.text(fit.summary().as_text())
             st.metric("Allometric exponent",f"{fit.params.iloc[1]:.3f}")
             st.caption("The log–log slope is the estimated scaling exponent. HC3 standard errors are used; inspect residuals, leverage and biological plausibility.")
@@ -109,7 +107,7 @@ with tabs[2]:
     q=st.slider("Target quantile",0.10,0.90,0.50,0.05,key="wb_quantile")
     if st.button("Fit quantile regression",key="wb_q_run"):
         try:
-            fit=fit_quantile_regression(df,qy,qpred,q)
+            fit=get_service("fit_quantile_regression")(df,qy,qpred,q,st.session_state.get("analysis_settings", {}))
             st.text(fit.summary().as_text())
         except Exception as e: st.error(str(e))
 
@@ -121,7 +119,7 @@ with tabs[3]:
     thresholds=st.multiselect("Minimum duration thresholds (seconds)",[60,90,120,150,180,210,240,270,300],[120,150,180,210,240],key="wb_dur_thresholds")
     if st.button("Evaluate duration thresholds",key="wb_dur_run"):
         try:
-            result=duration_sensitivity(df,dy,dc,thresholds,animal)
+            result=get_service("duration_sensitivity")(df,dy,dc,thresholds,animal)
             st.dataframe(result,use_container_width=True)
             st.plotly_chart(px.line(result,x="minimum_duration_seconds",y="mean",markers=True),use_container_width=True)
             st.download_button("Download duration sensitivity",result.to_csv(index=False).encode(),"duration_sensitivity.csv","text/csv")
@@ -142,7 +140,7 @@ with tabs[4]:
     margin=st.number_input("Equivalence margin in outcome units",min_value=0.000001,value=1.0,format="%.6f",key="wb_eq_margin")
     if st.button("Run TOST",key="wb_eq_run"):
         try:
-            res=tost_independent(df,ey,eg,ea,eb,margin)
+            res=get_service("tost_independent")(df,ey,eg,ea,eb,margin)
             st.json(res)
             st.metric("TOST p-value",f"{res['p_tost']:.4f}")
             st.success("Equivalence supported at alpha=0.05.") if res["equivalent_at_0.05"] else st.warning("Equivalence not demonstrated at alpha=0.05.")
@@ -157,7 +155,7 @@ with tabs[5]:
     reps=st.slider("Bootstrap resamples",50,300,100,25,key="wb_cluster_boot")
     if st.button("Assess cluster stability",key="wb_cluster_run"):
         try:
-            res=cluster_stability(df,ca,cf,int(k),int(reps))
+            res=get_service("cluster_stability")(df,ca,cf,int(k),int(reps))
             st.json(res)
             st.metric("Mean bootstrap adjusted Rand index",f"{res['mean_ari']:.3f}")
             st.caption(res["note"])

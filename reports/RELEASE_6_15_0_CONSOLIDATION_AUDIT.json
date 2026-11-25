@@ -1,0 +1,30 @@
+{
+  "release": "6.15.0",
+  "confirmed_consolidations": [
+    {
+      "method": "quantile_regression",
+      "canonical_implementation": "analysis_engine.advanced.fit_quantile_regression",
+      "compatibility_adapter": "analysis_engine.advanced_research.fit_quantile_regression",
+      "pages": ["pages/17_Scientific_Analysis_Workbench.py", "pages/31_Advanced_Inference.py"],
+      "verification": "output-equivalence and configured-quantile tests"
+    }
+  ],
+  "scientifically_distinct_implementations_retained": [
+    {"methods": ["statistics.fit_mixedlm", "research_hardening.fit_mixed_effects"], "reason": "random-intercept versus optional random-time-slope/session model capabilities"},
+    {"methods": ["advanced.repeatability_icc", "release6.estimate_repeatability_icc"], "reason": "long-format one-way random-effects versus balanced-panel ICC formulations"},
+    {"methods": ["advanced.fit_allometry", "advanced_research.fit_allometric_scaling"], "reason": "covariate-adjusted log-log model versus two-variable scaling model"},
+    {"methods": ["research_hardening.grouped_classification_benchmark", "classification_validation.grouped_nested_classification"], "reason": "basic grouped benchmarking versus nested/calibrated classification validation"}
+  ],
+  "known_remaining_work": [
+    "Complete runtime wiring and parameter-level tests for all settings in all applicable engines",
+    "Full semantic audit of every page and calculation path",
+    "Refactor remaining duplicated calculations after confirming statistical equivalence",
+    "Parquet tests require pyarrow, unavailable in this build environment",
+    "Streamlit browser, production database, object storage, multi-user and deployment smoke tests not executed"
+  ],
+  "verification": {
+    "python_compileall": "passed",
+    "pytest_excluding_dataset_formats": "123 passed, 9 warnings",
+    "parquet_tests": "not run; pyarrow unavailable"
+  }
+}

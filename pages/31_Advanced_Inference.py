@@ -3,10 +3,11 @@ import pandas as pd
 import plotly.express as px
 from analysis_engine.ui import header, metric_row, render_sidebar_navigation, empty_state
 from analysis_engine.advanced_research import (
-    fit_quantile_regression, fit_allometric_scaling,
+    fit_allometric_scaling,
     cluster_bootstrap_mean_difference,
 )
 from platform_core.auth import require_principal
+from analysis_engine.service_registry import get_service
 
 st.set_page_config(page_title="Advanced inference | Methane Phenotype Analytics", page_icon="📐", layout="wide")
 require_principal()
@@ -33,7 +34,7 @@ with tabs[0]:
     q = st.slider("Target quantile", 0.05, 0.95, 0.50, 0.05, key="qreg_q")
     if st.button("Fit quantile regression", type="primary", key="qreg_fit"):
         try:
-            model, used = fit_quantile_regression(df, y, predictors, q)
+            model, used = get_service("fit_quantile_regression")(df, y, predictors, q, st.session_state.get("analysis_settings", {}))
             st.session_state["qreg_result"] = {"summary": model.summary().as_text(), "n": len(used), "params": model.params.to_frame("coefficient").reset_index(names="term"), "q": q}
         except Exception as exc:
             st.error(str(exc))

@@ -1,7 +1,8 @@
 import streamlit as st
 import plotly.express as px
 from analysis_engine.ui import *
-from analysis_engine.ml import grouped_regression_benchmark, nested_grouped_regression_benchmark, REGRESSORS
+from analysis_engine.ml import REGRESSORS
+from analysis_engine.service_registry import get_service
 from analysis_engine.settings_config import load_active_settings
 
 from analysis_engine.ui import render_sidebar_navigation
@@ -50,7 +51,7 @@ run=st.button("Run selected model benchmark",type="primary",
 if run:
     try:
         with st.spinner(f"Training and evaluating {len(selected_models)} model(s)..."):
-            res=grouped_regression_benchmark(df,outcome,features,animal,folds,
+            res=get_service("grouped_regression")(df,outcome,features,animal,folds,
                                              selected_models=selected_models, settings=_cfg)
         st.session_state["ml_benchmark_results"]=res
         st.session_state["ml_benchmark_selection"]=selected_models
@@ -88,8 +89,8 @@ nested_models=st.multiselect("Models for nested validation",model_names,
 if st.button("Run nested grouped benchmark",type="primary",disabled=(not nested_models or not features)):
     try:
         with st.spinner("Running nested grouped cross-validation. This may take several minutes."):
-            nested=nested_grouped_regression_benchmark(df,outcome,features,animal,
-                outer_splits=outer_folds,inner_splits=inner_folds,selected_models=nested_models)
+            nested=get_service("nested_grouped_regression")(df,outcome,features,animal,
+                outer_splits=outer_folds,inner_splits=inner_folds,selected_models=nested_models, settings=_cfg)
         st.session_state["nested_ml_results"]=nested
     except Exception as exc:
         st.error(f"Nested benchmark failed: {exc}")

@@ -123,7 +123,10 @@ def fit_allometry(df, outcome, weight, covariates=None):
     for c in covariates: formula+=f' + C(Q("{c}"))' if d[c].dtype=="object" else f' + Q("{c}")'
     return smf.ols(formula,d).fit(cov_type="HC3")
 
-def fit_quantile_regression(df,outcome,predictors,quantile=.5):
+def fit_quantile_regression(df,outcome,predictors,quantile=None,settings=None):
+    cfg=(settings or {}).get("conventional", {})
+    quantile=float(cfg.get("quantile", .5) if quantile is None else quantile)
+    if not 0.05 <= quantile <= 0.95: raise ValueError("Quantile must be between 0.05 and 0.95.")
     d=df[[outcome]+predictors].copy()
     d[outcome]=pd.to_numeric(d[outcome],errors="coerce")
     d=d.dropna()

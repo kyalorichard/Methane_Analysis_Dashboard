@@ -178,7 +178,7 @@ def compare_forecasters(series: pd.Series, models=None, test_fraction=0.2, arima
     refits on the full observed series for future forecasts. No random shuffle.
     """
     cfg=(settings or {}).get("forecasting", {})
-    models = models or cfg.get("models") or ["Naive", "Seasonal Naive", "ARIMA", "SARIMA", "Prophet", "SVR", "LSTM"]
+    models = list(models if models is not None else (cfg.get("models") or ["Naive", "Seasonal Naive", "ARIMA", "SARIMA", "Prophet", "SVR", "LSTM"]))
     test_fraction=float(cfg.get("test_fraction", test_fraction)) if settings is not None else float(test_fraction)
     future_periods=int(cfg.get("horizon", future_periods)) if settings is not None else int(future_periods)
     frequency=cfg.get("frequency", frequency) if settings is not None else frequency
@@ -223,8 +223,9 @@ def compare_forecasters(series: pd.Series, models=None, test_fraction=0.2, arima
                 fitted = _fit_arima(full_fit, pd.Series([np.nan], index=[future_idx[0]]), tuple(arima_order))[1]
                 future = pd.Series(np.asarray(fitted.forecast(steps=future_periods)), index=future_idx)
             elif name == "SARIMA":
-                pred, _ = _fit_sarima(train_fit, test, tuple(arima_order), tuple(seasonal_order))
-                fitted = _fit_sarima(full_fit, pd.Series([np.nan], index=[future_idx[0]]), tuple(arima_order), tuple(seasonal_order))[1]
+                sarima_nonseasonal = tuple(cfg.get("sarima_order", seasonal_order)[:3]) if settings is not None else tuple(arima_order)
+                pred, _ = _fit_sarima(train_fit, test, sarima_nonseasonal, tuple(seasonal_order))
+                fitted = _fit_sarima(full_fit, pd.Series([np.nan], index=[future_idx[0]]), sarima_nonseasonal, tuple(seasonal_order))[1]
                 future = pd.Series(np.asarray(fitted.forecast(steps=future_periods)), index=future_idx)
             elif name == "Prophet":
                 pred, _ = _fit_prophet(train_fit, test, future_periods, frequency, cfg.get("prophet_yearly") if settings is not None else None, cfg.get("prophet_weekly") if settings is not None else None)

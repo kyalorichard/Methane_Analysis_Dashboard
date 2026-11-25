@@ -138,29 +138,16 @@ def variance_components_mixedlm(model) -> pd.DataFrame:
 
 
 def fit_quantile_regression(df: pd.DataFrame, outcome: str, predictors: list[str],
-                            quantile: float = 0.5, max_iter: int = 5000):
-    """Fit a conditional quantile regression using statsmodels QuantReg.
+                            quantile: float | None = None, settings: dict | None = None):
+    """Compatibility adapter to the canonical quantile-regression engine.
 
-    Estimates conditional quantiles, not conditional means. Standard errors are
-    asymptotic and can be unstable with sparse categories or small samples.
+    Keeps the historical ``(model, used_data)`` return contract while ensuring
+    every page uses the same estimator, validation rules and formula handling.
     """
-    if not 0.05 <= float(quantile) <= 0.95:
-        raise ValueError("Quantile must be between 0.05 and 0.95.")
-    if not predictors:
-        raise ValueError("Select at least one predictor.")
-    cols = [outcome] + predictors
-    d = df[cols].copy()
-    d[outcome] = _numeric(d[outcome])
-    for col in predictors:
-        if not pd.api.types.is_numeric_dtype(d[col]):
-            d[col] = d[col].astype("category")
-    d = d.dropna()
-    if len(d) < max(30, 5 * (len(predictors) + 1)):
-        raise ValueError("Insufficient complete observations for quantile regression.")
-    terms = [f"C(Q('{c}'))" if isinstance(d[c].dtype, pd.CategoricalDtype) or d[c].dtype == object else f"Q('{c}')" for c in predictors]
-    formula = f"Q('{outcome}') ~ " + " + ".join(terms)
-    model = smf.quantreg(formula, data=d).fit(q=float(quantile), max_iter=int(max_iter))
-    return model, d
+    from analysis_engine.advanced import fit_quantile_regression as _canonical
+    model = _canonical(df, outcome, predictors, quantile=quantile, settings=settings)
+    used = model.model.data.frame.copy()
+    return model, used
 
 
 def fit_allometric_scaling(df: pd.DataFrame, outcome: str, size_variable: str):

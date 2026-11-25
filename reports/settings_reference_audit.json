@@ -1,0 +1,1049 @@
+[
+  {
+    "setting": "study.name",
+    "source_references": [
+      "analysis_engine/settings_runtime.py",
+      "pages/19_Custom_Phenotype_Builder.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.species",
+    "source_references": [
+      "analysis_engine/settings_config.py",
+      "analysis_engine/settings_runtime.py",
+      "pages/32_Release_6_Research_Integration.py",
+      "pages/00_Project_Workspace.py",
+      "pages/15_Reports_Exports.py",
+      "pages/16_Species_Protocol_Configuration.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.design",
+    "source_references": [
+      "analysis_engine/settings_config.py",
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.experimental_unit",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.animal_id",
+    "source_references": [
+      "analysis_engine/research_intelligence.py",
+      "analysis_engine/settings_runtime.py",
+      "pages/34_Advanced_ML_Explainability.py",
+      "pages/32_Release_6_Research_Integration.py",
+      "pages/08_Group_Comparisons.py",
+      "pages/05_Clustering_PCA.py",
+      "pages/09_Explainability.py",
+      "pages/20_Longitudinal_Emitter_Tracking.py",
+      "pages/30_Advanced_Research_Analytics.py",
+      "pages/23_Integrated_Analysis_Centre.py",
+      "pages/31_Advanced_Inference.py",
+      "pages/37_Time_Series_Forecasting.py",
+      "pages/18_Low_High_Emitter_Reports.py",
+      "pages/07_Repeatability_Reliability.py",
+      "pages/10_Longitudinal_Analysis.py",
+      "pages/25_Research_Model_Lab.py",
+      "pages/17_Scientific_Analysis_Workbench.py",
+      "pages/28_Research_Intelligence.py",
+      "pages/04_ML_Benchmarking.py",
+      "pages/22_Guided_Research_Workflow.py",
+      "pages/16_Species_Protocol_Configuration.py",
+      "pages/27_Scientific_Publication_Suite.py",
+      "pages/03_Statistical_Models.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.group_id",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.date_column",
+    "source_references": [
+      "analysis_engine/settings_config.py",
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.round_column",
+    "source_references": [
+      "analysis_engine/settings_config.py",
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.methane_targets",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.phenotype_predictors",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.measurement_unit",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.protocol",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.instrument",
+    "source_references": [
+      "analysis_engine/research_intelligence.py",
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.calibration",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "study.minimum_duration",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.numeric_imputation",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.categorical_imputation",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.missing_threshold_pct",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.outlier_method",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.outlier_action",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.outlier_threshold",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.duplicate_action",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.transformation",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.scaling",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "preprocessing.scale_numeric",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.alpha",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.confidence_level",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.multiple_testing",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.normality_test",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.variance_test",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.correlations",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.effect_sizes",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.bootstrap_iterations",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.repeated_method",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.random_intercept",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.random_slope",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "statistics.sphericity_correction",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.n_splits",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.n_boot",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.random_state",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.test_size",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.validation_strategy",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.group_column",
+    "source_references": [
+      "analysis_engine/settings_runtime.py",
+      "pages/34_Advanced_ML_Explainability.py",
+      "pages/09_Explainability.py",
+      "pages/04_ML_Benchmarking.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.tune_models",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.tuning_iter",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.tuning_method",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.feature_selection",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.class_imbalance",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "comparison.interpretation",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "conventional.gee_covariance",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "conventional.mixed_reml",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "conventional.quantile",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "conventional.spline_n_knots",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.n_estimators",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.max_depth",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.min_samples_split",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.min_samples_leaf",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.max_features",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.bootstrap",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Random Forest.n_jobs",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.n_estimators",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.max_depth",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.min_samples_split",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.min_samples_leaf",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.max_features",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.bootstrap",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.Extra Trees.n_jobs",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.HistGradientBoosting.learning_rate",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.HistGradientBoosting.max_iter",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.HistGradientBoosting.max_leaf_nodes",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.HistGradientBoosting.max_depth",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.HistGradientBoosting.min_samples_leaf",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.HistGradientBoosting.l2_regularization",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.SVR.kernel",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.SVR.C",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.SVR.epsilon",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.SVR.gamma",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.KNN.n_neighbors",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.KNN.weights",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.KNN.p",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "models.KNN.leaf_size",
+    "source_references": [],
+    "static_reference_found": false,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.algorithms",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.min_clusters",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.max_clusters",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.distance",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.linkage",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.pca_variance",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.umap_neighbors",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "clustering.umap_min_dist",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.animal_column",
+    "source_references": [
+      "analysis_engine/settings_runtime.py",
+      "pages/07_Repeatability_Reliability.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.occasion_column",
+    "source_references": [
+      "analysis_engine/settings_runtime.py",
+      "pages/07_Repeatability_Reliability.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.icc_type",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.confidence_level",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.minimum_measurements",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.include_random_slope",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "repeatability.within_animal_metrics",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.frequency",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.aggregation",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.horizon",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.test_fraction",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.models",
+    "source_references": [
+      "analysis_engine/ml.py",
+      "analysis_engine/settings_runtime.py",
+      "analysis_engine/time_series_forecasting.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.arima_order",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.sarima_order",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.seasonal_period",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.prophet_yearly",
+    "source_references": [
+      "analysis_engine/settings_runtime.py",
+      "analysis_engine/time_series_forecasting.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.prophet_weekly",
+    "source_references": [
+      "analysis_engine/settings_runtime.py",
+      "analysis_engine/time_series_forecasting.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.svr_kernel",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.svr_c",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.svr_epsilon",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.svr_gamma",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.svr_lags",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.lstm_lookback",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.lstm_units",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.lstm_epochs",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.lstm_batch_size",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.lstm_learning_rate",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.rolling_origin",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "forecasting.prediction_interval",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "evaluation.regression_metrics",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "evaluation.classification_metrics",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "evaluation.residual_diagnostics",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "evaluation.autocorrelation_diagnostics",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "evaluation.prediction_intervals",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "evaluation.selection_criterion",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.formats",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.figure_formats",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.dpi",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.decimals",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.include_methodology",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.include_parameters",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.include_diagnostics",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.include_dictionary",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  },
+  {
+    "setting": "reporting.save_versions",
+    "source_references": [
+      "analysis_engine/settings_runtime.py"
+    ],
+    "static_reference_found": true,
+    "runtime_effect": "not established by static scan"
+  }
+]
