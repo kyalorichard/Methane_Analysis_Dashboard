@@ -11,6 +11,7 @@ from sklearn.model_selection import GroupShuffleSplit, GroupKFold, cross_val_pre
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, brier_score_loss
 from sklearn.calibration import calibration_curve
 from sklearn.linear_model import LinearRegression
+from analysis_engine.settings_config import load_active_settings
 from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
 from analysis_engine.ml import REGRESSORS
@@ -143,7 +144,7 @@ st.caption("Matched out-of-fold predictive comparison using identical GroupKFold
 from analysis_engine.model_comparison import compare_grouped_models, ML_MODELS
 comparison_catalogue=["OLS (linear regression)","GEE (exchangeable; marginal prediction)","Mixed-effects model (random intercept; fixed-effect prediction)","Spline regression (GAM-like)","Quantile regression (median)","Allometric power-law regression"]+list(ML_MODELS)
 compare_models=st.multiselect("Models to compare",comparison_catalogue,default=["OLS (linear regression)","GEE (exchangeable; marginal prediction)","Mixed-effects model (random intercept; fixed-effect prediction)","Spline regression (GAM-like)","Quantile regression (median)","Random Forest","Extra Trees","SVR"],key="r64_compare_models")
-_settings = st.session_state.get("analysis_settings", {})
+_settings = load_active_settings(st.session_state)
 _compare_cfg = _settings.get("comparison", {})
 compare_folds=st.slider("Matched grouped CV folds",3,min(8,max(3,int(groups.nunique()))),min(int(_compare_cfg.get("n_splits",5)),max(3,int(groups.nunique()))),key="r64_compare_folds")
 compare_boot=st.select_slider("Group-bootstrap replicates for paired RMSE differences",options=[200,500,1000,2000,5000],value=int(_compare_cfg.get("n_boot",500)),key="r64_compare_boot")

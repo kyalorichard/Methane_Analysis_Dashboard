@@ -1,0 +1,3 @@
+# Optional forecasting dependencies. ARIMA/SARIMA and SVR are available from base requirements.
+prophet>=1.1.6
+torch>=2.2

@@ -103,3 +103,30 @@ def import_project_state(user_scope, project_scope, state):
         for item in state.get("experiments", []):
             save_experiment(user_scope, project_scope, item.get("species_scope", "all"), item.get("name", "Imported experiment"), item.get("config", {}), item.get("metrics", {}), item.get("paired_comparisons", []), {**(item.get("metadata") or {}), "imported_from_archive": True, "original_created_at": item.get("created_at")})
         con.commit()
+
+
+def save_settings_snapshot(user_scope, project_scope, species_scope, settings):
+    """Append an immutable, fingerprinted configuration snapshot for auditability."""
+    from analysis_engine.settings_config import config_fingerprint
+    stamp = datetime.now(timezone.utc).isoformat()
+    fingerprint = config_fingerprint(settings)
+    snapshot_id = hashlib.sha256(f"{user_scope}|{project_scope}|{species_scope}|{stamp}|{fingerprint}".encode()).hexdigest()[:20]
+    with closing(_connect()) as con:
+        con.execute("""CREATE TABLE IF NOT EXISTS settings_history (
+            snapshot_id TEXT PRIMARY KEY, user_scope TEXT NOT NULL, project_scope TEXT NOT NULL,
+            species_scope TEXT NOT NULL, created_at TEXT NOT NULL, fingerprint TEXT NOT NULL,
+            payload TEXT NOT NULL)""")
+        con.execute("INSERT INTO settings_history VALUES (?,?,?,?,?,?,?)", (snapshot_id, str(user_scope), str(project_scope), str(species_scope), stamp, fingerprint, json.dumps(settings, sort_keys=True, default=str)))
+        con.commit()
+    return {"snapshot_id": snapshot_id, "created_at": stamp, "fingerprint": fingerprint}
+
+
+def list_settings_snapshots(user_scope, project_scope, species_scope=None, limit=20):
+    with closing(_connect()) as con:
+        query = "SELECT snapshot_id, species_scope, created_at, fingerprint FROM settings_history WHERE user_scope=? AND project_scope=?"
+        params = [str(user_scope), str(project_scope)]
+        if species_scope is not None:
+            query += " AND species_scope=?"; params.append(str(species_scope))
+        query += " ORDER BY created_at DESC LIMIT ?"; params.append(int(limit))
+        rows = con.execute(query, params).fetchall()
+    return [{"snapshot_id": r[0], "species_scope": r[1], "created_at": r[2], "fingerprint": r[3]} for r in rows]
