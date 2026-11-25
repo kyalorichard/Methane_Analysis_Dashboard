@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 
 def _db_path():
-    path = Path(os.getenv("ANALYSIS_REGISTRY_PATH", "data/analysis_registry.sqlite3"))
+    path = Path(os.getenv("ANALYSIS_REGISTRY_PATH", os.getenv("METHANE_METADATA_DB", "data/analysis_registry.sqlite3")))
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 

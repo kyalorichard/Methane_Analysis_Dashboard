@@ -6,8 +6,11 @@ import plotly.graph_objects as go
 
 from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
+from analysis_engine.settings_config import load_active_settings
 
 render_sidebar_navigation()
+_cfg = load_active_settings(st.session_state)
+_rep_cfg = _cfg.get("repeatability", {})
 
 header(
     'Repeatability & reliability',
@@ -21,12 +24,14 @@ header(
 df = get_data()
 r = get_roles(df)
 
-animal = r.get('animal_id')
-roundc = r.get('round')
+animal_default = _rep_cfg.get('animal_column') if _rep_cfg.get('animal_column') in df.columns else r.get('animal_id')
+animal = animal_default
+round_default = _rep_cfg.get('occasion_column') if _rep_cfg.get('occasion_column') in df.columns else r.get('round')
+roundc = round_default
 nums = numeric_cols(df)
 
 if not animal or not roundc:
-    st.error('Map both Animal ID and Round in Data Management.')
+    st.error('Map both Animal ID and Round in Data Management or dataset configuration.')
     st.stop()
 
 out = choose_col(

@@ -45,6 +45,11 @@ def validate_settings(cfg):
     if int(cfg['forecasting']['seasonal_period']) < 2: errors.append('Seasonal period must be at least 2.')
     if int(cfg['forecasting']['horizon']) < 1: errors.append('Forecast horizon must be positive.')
     if int(cfg['forecasting']['lstm_lookback']) < 2: errors.append('LSTM lookback must be at least 2.')
+    if int(cfg['forecasting']['svr_lags']) < 2: errors.append('SVR lag count must be at least 2.')
+    if not 0 < float(cfg['forecasting']['test_fraction']) < 1: errors.append('Forecast holdout fraction must be between 0 and 1.')
+    if int(cfg['comparison']['tuning_iter']) < 1: errors.append('Hyperparameter tuning iterations must be positive.')
+    if int(cfg['reporting']['decimals']) < 0 or int(cfg['reporting']['decimals']) > 10: errors.append('Reporting decimal places must be between 0 and 10.')
+    if int(cfg['repeatability']['minimum_measurements']) < 2: errors.append('Repeatability requires at least two measurements per animal.')
     if int(cfg['reporting']['dpi']) not in (150, 300, 600): warnings.append('Figure DPI is non-standard; use 300 or 600 for publication figures.')
     if cfg['comparison']['validation_strategy'] == 'random': warnings.append('Random validation can leak repeated animal records across train/test. Prefer grouped or temporal validation where appropriate.')
     if 'Seasonal Naive' in cfg['forecasting']['models']: warnings.append('Seasonal Naïve requires enough contiguous training observations to cover the selected seasonal period.')
@@ -56,10 +61,14 @@ def config_fingerprint(cfg):
 def load_active_settings(session_state):
     """Load scoped settings on demand so analysis pages work even if Settings was not visited first."""
     from analysis_engine.experiment_registry import load_settings
-    identity = session_state.get("user_id") or session_state.get("username") or session_state.get("email")
+    principal = session_state.get("principal") or {}
+    identity = (session_state.get("user_id") or principal.get("subject") or
+                session_state.get("username") or session_state.get("email"))
     user_scope = str(identity or "local-user")
-    project_scope = str(session_state.get("analysis_project_scope") or "default-project")
-    species_scope = str(session_state.get("analysis_species_scope") or "all")
+    if identity:
+        session_state["user_id"] = str(identity)
+    project_scope = str(session_state.get("analysis_project_scope") or session_state.get("active_project_id") or "default-project")
+    species_scope = str(session_state.get("analysis_species_scope") or session_state.get("species") or session_state.get("active_project_species") or "all").lower()
     scope_key = f"{user_scope}|{project_scope}|{species_scope}"
     if session_state.get("analysis_settings_scope_key") != scope_key:
         persisted, stamp = load_settings(user_scope, project_scope, species_scope)

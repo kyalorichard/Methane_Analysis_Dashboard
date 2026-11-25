@@ -639,21 +639,30 @@ def render_sidebar_navigation():
         st.divider()
         st.markdown("<div class='section-kicker'>Active project</div>", unsafe_allow_html=True)
         try:
-            from platform_core.database import configured
-            from platform_core.workspace import list_projects
+            from platform_core import storage
             from platform_core.auth import require_principal
             principal = require_principal()
-            if configured():
-                projects = list_projects(principal.tenant_id, principal.subject)
-                if projects:
-                    opts = {f"{x['name']} · {x['species'].title()}": x for x in projects}
-                    labels = list(opts); active = st.session_state.get("active_project_id")
-                    default = next((label for label, item in opts.items() if item["id"] == active), labels[0])
-                    chosen = st.selectbox("Project", labels, index=labels.index(default), key="shared_project_switch")
-                    st.session_state["active_project_id"] = opts[chosen]["id"]
-                    st.session_state["active_project_species"] = opts[chosen]["species"]
-                else: st.caption("No projects available. Create one in Projects & datasets.")
-            else: st.caption("Local research session · persistent projects not configured")
+            projects = storage.list_projects(principal.tenant_id, principal.subject)
+            if projects:
+                opts = {f"{x['name']} · {x['species'].title()} · {x['id'][:8]}": x for x in projects}
+                labels = list(opts); active = st.session_state.get("active_project_id")
+                default = next((label for label, item in opts.items() if item["id"] == active), labels[0])
+                chosen = st.selectbox("Project", labels, index=labels.index(default), key="shared_project_switch")
+                selected_project = opts[chosen]
+                previous_project = st.session_state.get("active_project_id")
+                if previous_project and previous_project != selected_project["id"]:
+                    # Never carry an in-memory dataset or analysis result across project boundaries.
+                    for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile",
+                                      "active_dataset_id", "active_dataset_key", "forecast_series", "forecast_results",
+                                      "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+                        st.session_state.pop(state_key, None)
+                    st.session_state.pop("analysis_settings_scope_key", None)
+                    st.session_state.pop("analysis_species_scope", None)
+                st.session_state["active_project_id"] = selected_project["id"]
+                st.session_state["active_project_species"] = selected_project["species"]
+                st.session_state["analysis_project_scope"] = selected_project["id"]
+                st.session_state["analysis_species_scope"] = selected_project["species"].lower()
+            else: st.caption("No projects available. Create one in Projects & datasets.")
         except Exception: st.caption("Project selector unavailable; configure access in Projects & datasets.")
         catalogue = st.session_state.get("dataset_catalogue", {})
         if catalogue:

@@ -10,11 +10,12 @@ from platform_core.auth import require_principal, tenant_memberships_for_subject
 from platform_core.species import infer_species_roles, PROFILES
 from platform_core.data_governance import inspect_dataset, validate_species_dataset
 from platform_core.database import configured
-from platform_core.workspace import list_projects
+from platform_core import storage
 
 st.set_page_config(page_title='Methane Phenotype Analytics',page_icon='🐑',layout='wide',initial_sidebar_state='expanded')
 apply_style()
 principal = require_principal()
+st.session_state['user_id'] = principal.subject
 if os.getenv('AUTH_MODE','development').lower() == 'entra_proxy':
     memberships = tenant_memberships_for_subject(principal.subject)
     if len(memberships) > 1:

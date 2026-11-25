@@ -20,6 +20,7 @@ from analysis_engine.research_hardening import CLASSIFIERS, grouped_classificati
 
 render_sidebar_navigation()
 header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.", badge="RELEASE 6.8")
+cfg=load_active_settings(st.session_state); comparison_cfg=cfg.get("comparison", {})
 df=get_data(); roles=get_roles(df); nums=numeric_cols(df)
 if len(df)<10:
     st.warning("Load a dataset with sufficient observations before running advanced ML workflows.")
@@ -35,9 +36,10 @@ with st.container(border=True):
     with cfg_a:
         outcome=choose_col(df,"Continuous target",roles.get("methane"),nums)
     with cfg_b:
-        animal=choose_col(df,"Grouping unit",roles.get("animal_id"))
+        group_default=comparison_cfg.get("group_column") if comparison_cfg.get("group_column") in df.columns else roles.get("animal_id")
+        animal=choose_col(df,"Grouping unit",group_default)
     with cfg_c:
-        seed=st.number_input("Random seed",min_value=0,max_value=999999,value=42)
+        seed=st.number_input("Random seed",min_value=0,max_value=999999,value=int(comparison_cfg.get("random_state",42)))
     features=st.multiselect("Predictor variables",[c for c in df.columns if c not in [outcome,animal]],default=[c for c in nums if c!=outcome][:8],help="Select variables available at the intended prediction time. Exclude target-derived or post-outcome variables.")
 
 if not features:
@@ -58,7 +60,7 @@ if groups.nunique()<5:
 
 st.subheader("1. Grouped learning curves")
 curve_model=st.selectbox("Learning-curve estimator",list(REGRESSORS),index=list(REGRESSORS).index("Extra Trees") if "Extra Trees" in REGRESSORS else 0)
-curve_folds=st.slider("Grouped folds",3,8,5,key="r62_curve_folds")
+curve_folds=st.slider("Grouped folds",2,8,int(comparison_cfg.get("n_splits",5)),key="r62_curve_folds")
 if st.button("Calculate grouped learning curve",key="r62_curve_run"):
     try:
         pipe=Pipeline([("prep",clone(prep)),("model",clone(REGRESSORS[curve_model]))])

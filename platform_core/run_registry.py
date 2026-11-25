@@ -4,7 +4,9 @@ import os, sqlite3, json
 from pathlib import Path
 from datetime import datetime, timezone
 
-DEFAULT_DB=Path(os.environ.get("METHANE_RUN_REGISTRY", "platform_data/analysis_runs.sqlite3"))
+# A shared metadata database can be configured for settings, experiments and run history.
+# Preserve the legacy run-registry path unless an administrator explicitly opts in.
+DEFAULT_DB=Path(os.environ.get("METHANE_RUN_REGISTRY", os.environ.get("METHANE_METADATA_DB", "platform_data/analysis_runs.sqlite3")))
 
 def _connect(db_path=None):
     path=Path(db_path) if db_path else DEFAULT_DB

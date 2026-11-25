@@ -2,7 +2,10 @@ import streamlit as st, plotly.express as px
 from analysis_engine.ui import *
 from analysis_engine.unsupervised import animal_profiles,pca_scores,cluster_diagnostics,compare_clusterers,CLUSTERERS
 from analysis_engine.ui import render_sidebar_navigation
+from analysis_engine.settings_config import load_active_settings
 render_sidebar_navigation()
+_cfg = load_active_settings(st.session_state)
+_cluster_cfg = _cfg.get("clustering", {})
 
 header('Animal-level PCA & clustering','Explore multivariate phenotype structure using animal-level profiles. Select the clustering algorithms to compare.')
 df=get_data();animal=get_roles(df).get('animal_id')
@@ -19,7 +22,7 @@ st.subheader('Clustering algorithm selection')
 mode=st.radio('Algorithms to evaluate',['Compare all available algorithms','Select specific algorithms'],horizontal=True,key='cluster_selection_mode')
 selected=CLUSTERERS if mode.startswith('Compare') else st.multiselect('Clustering algorithms',CLUSTERERS,default=CLUSTERERS[:2],key='cluster_selected_algorithms')
 c1,c2,c3=st.columns(3)
-with c1: k=st.slider('Clusters / mixture components',2,min(10,len(profiles)-1),3)
+with c1: k=st.slider('Clusters / mixture components',2,min(10,len(profiles)-1),min(max(2,int(_cluster_cfg.get('min_clusters',2))),min(10,len(profiles)-1)))
 with c2: eps=st.slider('DBSCAN epsilon',0.1,3.0,0.8,0.1)
 with c3: min_samples=st.slider('DBSCAN minimum samples',2,20,5)
 if st.button('Compare selected clustering algorithms',type='primary',disabled=not selected):

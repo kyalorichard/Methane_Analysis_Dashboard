@@ -4,13 +4,7 @@ import pandas as pd
 import streamlit as st
 from analysis_engine.ui import header, metric_row, render_sidebar_navigation
 from platform_core.auth import require_principal
-from platform_core.database import configured
-from platform_core import local_workspace
-from platform_core import workspace as cloud_workspace
-from platform_core.workspace import (
-    list_projects, create_project, save_dataset, list_datasets, load_dataset,
-    get_project, duplicate_project, create_project_version, list_project_versions,
-)
+from platform_core import storage as store
 from platform_core.project_archive import (
     build_project_archive, inspect_project_archive, import_project_archive,
 )
@@ -19,20 +13,23 @@ from platform_core.data_governance import inspect_dataset
 
 render_sidebar_navigation()
 principal = require_principal()
-# Local-first mode is the default when cloud persistence is not fully configured.
-# Set PROJECT_STORAGE_BACKEND=local|cloud to choose explicitly.
-_backend = __import__('os').getenv('PROJECT_STORAGE_BACKEND', 'cloud' if (configured() and __import__('os').getenv('S3_BUCKET')) else 'local').lower()
-if _backend not in {'local', 'cloud'}:
-    st.error("PROJECT_STORAGE_BACKEND must be 'local' or 'cloud'.")
+# All workspace operations use one backend-selection facade.
+try:
+    _backend = store.backend_name()
+except Exception as exc:
+    st.error(f"Storage configuration error: {exc}")
     st.stop()
-store = local_workspace if _backend == 'local' else cloud_workspace
-if _backend == 'local':
-    list_projects, create_project, save_dataset, list_datasets, load_dataset, get_project, duplicate_project, create_project_version, list_project_versions = (
-        local_workspace.list_projects, local_workspace.create_project, local_workspace.save_dataset,
-        local_workspace.list_datasets, local_workspace.load_dataset, local_workspace.get_project,
-        local_workspace.duplicate_project, local_workspace.create_project_version, local_workspace.list_project_versions,
-    )
-st.session_state["user_id"] = principal.subject
+
+list_projects = store.list_projects
+create_project = store.create_project
+save_dataset = store.save_dataset
+list_datasets = store.list_datasets
+load_dataset = store.load_dataset
+get_project = store.get_project
+duplicate_project = store.duplicate_project
+create_project_version = store.create_project_version
+list_project_versions = store.list_project_versions
+
 header("Project workspace", "Create, import, manage, version and resume tenant-scoped livestock research projects.", badge="PROJECT LIFECYCLE")
 
 if _backend == 'cloud' and not configured():
@@ -111,7 +108,8 @@ project_id = project["id"]
 st.session_state["active_project_id"] = project_id
 st.session_state["active_project_species"] = project["species"]
 st.session_state["species"] = project["species"]
-st.session_state["analysis_project_scope"] = project["name"]
+st.session_state["analysis_project_scope"] = project_id
+st.session_state["analysis_project_legacy_scope"] = project["name"]
 
 try:
     datasets = list_datasets(principal.tenant_id, project_id, principal.subject)
@@ -144,7 +142,8 @@ with manage_tab:
             st.session_state["species"] = species
             st.session_state["active_dataset_id"] = selected["id"]
             st.session_state["active_project_id"] = project_id
-            st.session_state["analysis_project_scope"] = project["name"]
+            st.session_state["analysis_project_scope"] = project_id
+            st.session_state["analysis_project_legacy_scope"] = project["name"]
             from platform_core.species import infer_species_roles
             saved_config = store.get_dataset_configuration(principal.tenant_id, principal.subject, project_id, selected["id"])
             st.session_state["species"] = saved_config.get("species") or species

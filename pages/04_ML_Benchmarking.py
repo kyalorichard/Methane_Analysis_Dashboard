@@ -2,9 +2,12 @@ import streamlit as st
 import plotly.express as px
 from analysis_engine.ui import *
 from analysis_engine.ml import grouped_regression_benchmark, nested_grouped_regression_benchmark, REGRESSORS
+from analysis_engine.settings_config import load_active_settings
 
 from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
+_cfg = load_active_settings(st.session_state)
+_ml_cfg = _cfg.get("comparison", {})
 
 header("Machine-learning benchmarking",
        "Select the algorithms to evaluate, or use the full model suite. Validation keeps all records from each animal in the same fold.")
@@ -13,7 +16,8 @@ df=get_data()
 nums=numeric_cols(df)
 roles=get_roles(df)
 outcome=choose_col(df,"Continuous target",roles.get("methane"),nums)
-animal=choose_col(df,"Animal ID",roles.get("animal_id"))
+animal_default = _ml_cfg.get("group_column") if _ml_cfg.get("group_column") in df.columns else roles.get("animal_id")
+animal=choose_col(df,"Animal ID / independent grouping unit",animal_default)
 features=st.multiselect("Predictor variables",
     [c for c in df.columns if c not in [outcome,animal]],
     default=[c for c in nums if c!=outcome][:6])
@@ -40,7 +44,7 @@ with st.expander("Available algorithms and model families"):
     - **Instance-based:** K-Nearest Neighbours (KNN)
     """)
 
-folds=st.slider("Animal-grouped cross-validation folds",3,10,5)
+folds=st.slider("Animal-grouped cross-validation folds",2,10,int(_ml_cfg.get("n_splits",5)))
 run=st.button("Run selected model benchmark",type="primary",
               disabled=(not selected_models or not features))
 if run:

@@ -16,7 +16,7 @@ def _sha(data: bytes) -> str:
 
 
 def build_project_archive(tenant_id: str, subject: str, project_id: str, include_research_state: bool = True) -> bytes:
-    from platform_core.workspace import get_project, list_datasets, load_dataset
+    from platform_core.storage import get_project, list_datasets, load_dataset
     project = get_project(tenant_id, project_id, subject)
     datasets = list_datasets(tenant_id, project_id, subject)
     manifest = {
@@ -27,7 +27,12 @@ def build_project_archive(tenant_id: str, subject: str, project_id: str, include
     }
     if include_research_state:
         from analysis_engine.experiment_registry import export_project_state
-        manifest["research_state"] = export_project_state(subject, project.get("name", ""))
+        manifest["research_state"] = export_project_state(subject, project_id)
+        # Backward compatibility for projects whose settings were scoped by project name.
+        if not manifest["research_state"].get("settings") and not manifest["research_state"].get("experiments"):
+            legacy_state = export_project_state(subject, project.get("name", ""))
+            if legacy_state.get("settings") or legacy_state.get("experiments"):
+                manifest["research_state"] = legacy_state
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for i, item in enumerate(datasets, start=1):
@@ -99,7 +104,7 @@ def inspect_project_archive(payload: bytes) -> dict:
 
 
 def import_project_archive(payload: bytes, tenant_id: str, subject: str, project_name: str | None = None, restore_research_state: bool = True) -> dict:
-    from platform_core.workspace import create_project, save_dataset
+    from platform_core.storage import create_project, save_dataset
     manifest = inspect_project_archive(payload)
     source = manifest["project"]
     name = (project_name or source["name"]).strip()
@@ -126,5 +131,5 @@ def import_project_archive(payload: bytes, tenant_id: str, subject: str, project
         raise RuntimeError(f"Project {project_id} was created, but import did not complete. It has been retained for audit and recovery; inspect its imported datasets before retrying. Cause: {exc}") from exc
     if restore_research_state:
         from analysis_engine.experiment_registry import import_project_state
-        import_project_state(subject, name, manifest.get("research_state") or {})
+        import_project_state(subject, project_id, manifest.get("research_state") or {})
     return {"project_id": project_id, "project_name": name, "datasets_imported": len(imported), "datasets": imported, "research_state_restored": bool(restore_research_state)}

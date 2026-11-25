@@ -5,9 +5,7 @@ import streamlit as st
 
 from analysis_engine.ui import header, render_sidebar_navigation
 from platform_core.auth import require_principal
-from platform_core.database import configured
-from platform_core import local_workspace
-from platform_core import workspace as cloud_workspace
+from platform_core import storage
 from platform_core.species import PROFILES, infer_species_roles, get_profile
 from platform_core.data_governance import validate_species_dataset
 
@@ -17,14 +15,12 @@ header(
     'Configure species, variable roles and measurement metadata separately for each stored dataset.'
 )
 principal = require_principal()
-backend = os.getenv('PROJECT_STORAGE_BACKEND', 'cloud' if (configured() and os.getenv('S3_BUCKET')) else 'local').lower()
-if backend not in {'local', 'cloud'}:
-    st.error("PROJECT_STORAGE_BACKEND must be 'local' or 'cloud'.")
+try:
+    backend = storage.backend_name()
+    store = storage.get_backend()
+except Exception as exc:
+    st.error(f'Project storage is not available: {exc}')
     st.stop()
-if backend == 'cloud' and not configured():
-    st.error('Cloud project storage is selected but DATABASE_URL is not configured.')
-    st.stop()
-store = local_workspace if backend == 'local' else cloud_workspace
 
 try:
     projects = store.list_projects(principal.tenant_id, principal.subject)
@@ -69,7 +65,8 @@ except Exception as exc:
 
 st.session_state['active_project_id'] = project_id
 st.session_state['active_dataset_id'] = dataset_id
-st.session_state['analysis_project_scope'] = project['name']
+st.session_state['analysis_project_scope'] = project_id
+st.session_state['analysis_project_legacy_scope'] = project['name']
 st.caption(f"Storage: {'Local SQLite + filesystem' if backend == 'local' else 'PostgreSQL + S3'} · Dataset: {dataset_name} · {len(df):,} rows × {df.shape[1]:,} variables")
 
 species_keys = list(PROFILES.keys())

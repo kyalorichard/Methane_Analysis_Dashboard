@@ -6,21 +6,31 @@ from analysis_engine.experiment_registry import load_settings, save_settings, sa
 from analysis_engine.settings_config import defaults, migrate_settings, validate_settings, config_fingerprint
 
 render_sidebar_navigation()
-header("Analysis & model settings", "Central configuration for study design, preprocessing, inference, machine learning, clustering, repeatability, forecasting and reproducible reporting.", badge="RELEASE 6.10")
+header("Analysis & model settings", "Central configuration for study design, preprocessing, inference, machine learning, clustering, repeatability, forecasting and reproducible reporting.", badge="RELEASE 6.11")
 
-identity = st.session_state.get("user_id") or st.session_state.get("username") or st.session_state.get("email")
+principal = st.session_state.get("principal") or {}
+identity = st.session_state.get("user_id") or principal.get("subject") or st.session_state.get("username") or st.session_state.get("email")
 user_scope = str(identity or "local-user")
 if not identity:
     st.warning("No authenticated user identifier was found. Settings use the shared local-user scope; configure authenticated identity before enabling multi-user use.")
 ca, cb = st.columns(2)
-with ca: project_scope = st.text_input("Project / study scope", value=st.session_state.get("analysis_project_scope", "default-project"), key="analysis_project_input")
-with cb: species_scope = st.selectbox("Species scope", ["all", "cattle", "sheep", "goats", "buffalo", "camel", "other"], key="analysis_species_input")
+with ca: project_scope = st.text_input("Project / study scope", value=st.session_state.get("analysis_project_scope") or st.session_state.get("active_project_id") or "default-project", key="analysis_project_input")
+with cb: species_scope = st.selectbox("Species scope", ["all", "cattle", "sheep", "goat", "buffalo", "camel", "other"], key="analysis_species_input")
 project_scope = project_scope.strip() or "default-project"
 st.session_state["analysis_project_scope"] = project_scope
 st.session_state["analysis_species_scope"] = species_scope
 scope_key = f"{user_scope}|{project_scope}|{species_scope}"
 if st.session_state.get("analysis_settings_scope_key") != scope_key:
     persisted, persisted_at = load_settings(user_scope, project_scope, species_scope)
+    # One-time compatibility migration: earlier releases scoped settings by project name.
+    if persisted is None:
+        legacy_scope = st.session_state.get("analysis_project_legacy_scope")
+        if legacy_scope and str(legacy_scope) != project_scope:
+            persisted, persisted_at = load_settings(user_scope, str(legacy_scope), species_scope)
+            if persisted is not None:
+                persisted = migrate_settings(persisted)
+                persisted_at = save_settings(user_scope, project_scope, species_scope, persisted)
+                st.session_state["analysis_settings_migrated_from_legacy_scope"] = str(legacy_scope)
     st.session_state.analysis_settings = migrate_settings(persisted or {})
     st.session_state.analysis_settings_scope_key = scope_key
     st.session_state.analysis_settings_saved_at = persisted_at
