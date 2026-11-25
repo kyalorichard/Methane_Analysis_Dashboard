@@ -24,6 +24,14 @@ def _connect():
         species_scope TEXT NOT NULL, experiment_name TEXT NOT NULL, created_at TEXT NOT NULL,
         config_json TEXT NOT NULL, metrics_json TEXT NOT NULL, paired_json TEXT NOT NULL,
         metadata_json TEXT NOT NULL)""")
+    # Initialise history during every connection bootstrap. The Settings page
+    # reads history before a user necessarily creates their first snapshot.
+    con.execute("""CREATE TABLE IF NOT EXISTS settings_history (
+        snapshot_id TEXT PRIMARY KEY, user_scope TEXT NOT NULL, project_scope TEXT NOT NULL,
+        species_scope TEXT NOT NULL, created_at TEXT NOT NULL, fingerprint TEXT NOT NULL,
+        payload TEXT NOT NULL)""")
+    con.execute("""CREATE INDEX IF NOT EXISTS idx_settings_history_scope_time
+        ON settings_history(user_scope, project_scope, species_scope, created_at DESC)""")
     con.commit()
     return con
 
