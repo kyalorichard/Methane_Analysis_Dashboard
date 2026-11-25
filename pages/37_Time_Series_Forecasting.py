@@ -85,7 +85,7 @@ if series is not None:
                     arima_order=(int(p),int(d),int(q)), future_periods=int(horizon), frequency=freq,
                     lstm_lookback=int(lookback), lstm_epochs=int(epochs),
                     seasonal_order=(int(seasonal_p),0,1,int(seasonal_period)),
-                    seasonal_period=int(seasonal_period), svr_lags=int(svr_lags))
+                    seasonal_period=int(seasonal_period), svr_lags=int(svr_lags), settings=_active_settings)
             st.session_state["forecast_results"] = result
         except Exception as exc:
             st.error(f"Forecasting failed: {exc}")

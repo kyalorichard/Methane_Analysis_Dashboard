@@ -51,7 +51,7 @@ if run:
     try:
         with st.spinner(f"Training and evaluating {len(selected_models)} model(s)..."):
             res=grouped_regression_benchmark(df,outcome,features,animal,folds,
-                                             selected_models=selected_models)
+                                             selected_models=selected_models, settings=_cfg)
         st.session_state["ml_benchmark_results"]=res
         st.session_state["ml_benchmark_selection"]=selected_models
     except Exception as e:

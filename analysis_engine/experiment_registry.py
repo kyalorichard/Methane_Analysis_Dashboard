@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 
 def _db_path():
-    path = Path(os.getenv("ANALYSIS_REGISTRY_PATH", os.getenv("METHANE_METADATA_DB", "data/analysis_registry.sqlite3")))
+    path = Path(os.getenv("METHANE_METADATA_DB") or os.getenv("ANALYSIS_REGISTRY_PATH") or "data/methane_metadata.sqlite3")
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -33,6 +33,9 @@ def _connect():
     con.execute("""CREATE INDEX IF NOT EXISTS idx_settings_history_scope_time
         ON settings_history(user_scope, project_scope, species_scope, created_at DESC)""")
     con.commit()
+    # Import legacy settings/experiment metadata once into the canonical local store.
+    from platform_core.metadata_migrations import migrate_legacy_metadata
+    migrate_legacy_metadata(_db_path())
     return con
 
 

@@ -479,7 +479,16 @@ def get_data():
             "to activate this module."
         )
         st.stop()
-    return st.session_state["data"]
+    data = st.session_state["data"]
+    # Resolve the same project, dataset, species and settings context for every
+    # analytical page that uses the shared get_data() entry point.
+    from platform_core.analysis_context import resolve_analysis_context
+    try:
+        resolve_analysis_context(data, st.session_state)
+    except Exception as exc:
+        st.error(f"Unable to resolve the active analysis configuration: {exc}")
+        st.stop()
+    return data
 
 
 def get_roles(df):
@@ -627,7 +636,7 @@ def render_sidebar_navigation():
             ("01 · WORKSPACE", [("Overview", "app.py", "🏠"), ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"), ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"), ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"), ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪")]),
             ("02 · DATA & PHENOTYPING", [("Data management & QC", "pages/01_Data_Management.py", "🧹"), ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"), ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"), ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"), ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"), ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬")]),
             ("03 · PHENOTYPE EVIDENCE", [("Repeatability & reliability", "pages/07_Repeatability_Reliability.py", "🔁"), ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"), ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"), ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"), ("Low / high emitters", "pages/18_Low_High_Emitter_Reports.py", "↕️")]),
-            ("04 · STATISTICS & MACHINE LEARNING", [("Statistical models", "pages/03_Statistical_Models.py", "📐"), ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"), ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"), ("Advanced ML validation & explainability", "pages/34_Advanced_ML_Explainability.py", "💡"), ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"), ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"), ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"), ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"), ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️")]),
+            ("04 · STATISTICS & MACHINE LEARNING", [("Statistical models", "pages/03_Statistical_Models.py", "📐"), ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"), ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"), ("Advanced ML validation & explainability", "pages/34_Advanced_ML_Explainability.py", "💡"), ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"), ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"), ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"), ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"), ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"), ("Advanced analysis", "pages/11_Advanced_Analysis.py", "🧮"), ("Variable importance & explainability", "pages/09_Explainability.py", "🔎")]),
             ("05 · LONGITUDINAL & MULTI-STUDY", [("Longitudinal analysis", "pages/10_Longitudinal_Analysis.py", "🗓️"), ("Time-series forecasting", "pages/37_Time_Series_Forecasting.py", "📉"), ("Emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"), ("Study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐")]),
             ("06 · REPORTING & GOVERNANCE", [("Reports & exports", "pages/15_Reports_Exports.py", "📄"), ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"), ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"), ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"), ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾")]),
             ("07 · PLATFORM SETTINGS", [("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"), ("Reliability & agreement", "pages/33_Reliability_and_Agreement.py", "🔁"), ("Release 6 research integration", "pages/32_Release_6_Research_Integration.py", "🧬")]),

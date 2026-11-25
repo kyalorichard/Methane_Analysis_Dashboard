@@ -50,6 +50,13 @@ def validate_settings(cfg):
     if int(cfg['comparison']['tuning_iter']) < 1: errors.append('Hyperparameter tuning iterations must be positive.')
     if int(cfg['reporting']['decimals']) < 0 or int(cfg['reporting']['decimals']) > 10: errors.append('Reporting decimal places must be between 0 and 10.')
     if int(cfg['repeatability']['minimum_measurements']) < 2: errors.append('Repeatability requires at least two measurements per animal.')
+    if not 0 < float(cfg['forecasting']['prediction_interval']) < 1: errors.append('Forecast prediction interval must be between 0 and 1.')
+    interval_levels = cfg['evaluation'].get('prediction_intervals', [])
+    if any(not 0 < float(level) < 1 for level in interval_levels): errors.append('Prediction interval levels must be between 0 and 1.')
+    if cfg['comparison']['validation_strategy'] == 'grouped' and not str(cfg['comparison'].get('group_column', '')).strip():
+        warnings.append('Grouped validation is selected but no grouping column is configured.')
+    if cfg['study'].get('design') == 'longitudinal' and not (cfg['study'].get('date_column') or cfg['study'].get('round_column')):
+        warnings.append('Longitudinal design is selected but neither a date nor measurement-round column is configured.')
     if int(cfg['reporting']['dpi']) not in (150, 300, 600): warnings.append('Figure DPI is non-standard; use 300 or 600 for publication figures.')
     if cfg['comparison']['validation_strategy'] == 'random': warnings.append('Random validation can leak repeated animal records across train/test. Prefer grouped or temporal validation where appropriate.')
     if 'Seasonal Naive' in cfg['forecasting']['models']: warnings.append('Seasonal Naïve requires enough contiguous training observations to cover the selected seasonal period.')
@@ -75,4 +82,20 @@ def load_active_settings(session_state):
         session_state["analysis_settings"] = migrate_settings(persisted or {})
         session_state["analysis_settings_scope_key"] = scope_key
         session_state["analysis_settings_saved_at"] = stamp
+        errors, warnings = validate_settings(session_state["analysis_settings"])
+        session_state["analysis_settings_validation"] = {"errors": errors, "warnings": warnings}
     return session_state.get("analysis_settings", defaults())
+
+
+def active_settings_section(session_state, section: str) -> dict:
+    """Return a defensive copy of one validated active settings section."""
+    cfg = load_active_settings(session_state)
+    if section not in cfg or not isinstance(cfg[section], dict):
+        raise KeyError(f"Unknown settings section: {section}")
+    return copy.deepcopy(cfg[section])
+
+
+def settings_consumption_matrix(settings=None):
+    """Return the central settings-to-engine contract for audit and acceptance tests."""
+    from analysis_engine.settings_runtime import settings_consumption_report
+    return settings_consumption_report(settings)

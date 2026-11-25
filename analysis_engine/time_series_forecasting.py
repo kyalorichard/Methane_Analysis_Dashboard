@@ -30,8 +30,8 @@ def prepare_series(df: pd.DataFrame, date_col: str, target: str, frequency: str 
     s = d[target].resample(frequency).agg(agg).dropna().astype(float)
     if s.index.has_duplicates:
         s = s.groupby(level=0).mean()
-    if len(s) < 12:
-        raise ValueError(f"Only {len(s)} time points are available after resampling; at least 12 are required for this forecasting workflow.")
+    if s.notna().sum() < 12:
+        raise ValueError(f"Only {int(s.notna().sum())} observed time points are available after resampling; at least 12 are required for this forecasting workflow.")
     # Regularise gaps to a continuous index; missing periods remain NaN and are
     # interpolated using past observations only for the training portion below.
     full_idx = pd.date_range(s.index.min(), s.index.max(), freq=frequency)
@@ -57,7 +57,7 @@ def _fit_arima(train, test, order):
     return np.asarray(pred, dtype=float), fitted
 
 
-def _fit_prophet(train, test, future_periods, frequency):
+def _fit_prophet(train, test, future_periods, frequency, yearly_seasonality=None, weekly_seasonality=None):
     try:
         from prophet import Prophet
     except ImportError as exc:
@@ -66,8 +66,10 @@ def _fit_prophet(train, test, future_periods, frequency):
     if len(clean_train) < 8:
         raise ValueError("Prophet requires at least eight observed training periods.")
     tr = pd.DataFrame({"ds": clean_train.index, "y": clean_train.values})
-    model = Prophet(daily_seasonality=False, weekly_seasonality=(frequency in ("D", "W")),
-                    yearly_seasonality=(len(train) >= 24), seasonality_mode="additive")
+    model = Prophet(daily_seasonality=False,
+                    weekly_seasonality=(frequency in ("D", "W")) if weekly_seasonality is None else bool(weekly_seasonality),
+                    yearly_seasonality=(len(train) >= 24) if yearly_seasonality is None else bool(yearly_seasonality),
+                    seasonality_mode="additive")
     model.fit(tr)
     test_frame = pd.DataFrame({"ds": test.index})
     pred_test = model.predict(test_frame)["yhat"].to_numpy() if len(test_frame) else np.array([])
@@ -76,7 +78,7 @@ def _fit_prophet(train, test, future_periods, frequency):
     return pred_test, pred_future
 
 
-def _fit_lstm(train, test, future_periods, lookback=6, epochs=80, hidden_size=32, seed=42):
+def _fit_lstm(train, test, future_periods, lookback=6, epochs=80, hidden_size=32, seed=42, batch_size=16, learning_rate=0.001):
     try:
         import torch
         from torch import nn
@@ -97,10 +99,14 @@ def _fit_lstm(train, test, future_periods, lookback=6, epochs=80, hidden_size=32
             super().__init__(); self.lstm = nn.LSTM(1, hidden_size, batch_first=True); self.fc = nn.Linear(hidden_size, 1)
         def forward(self, x):
             out, _ = self.lstm(x); return self.fc(out[:, -1, :])
-    net = Net(); opt = torch.optim.Adam(net.parameters(), lr=0.01); loss_fn = nn.MSELoss()
+    net = Net(); opt = torch.optim.Adam(net.parameters(), lr=float(learning_rate)); loss_fn = nn.MSELoss()
     net.train()
     for _ in range(int(epochs)):
-        opt.zero_grad(); loss = loss_fn(net(X), y); loss.backward(); opt.step()
+        # Deterministic shuffled mini-batches; training uses only the supplied history.
+        order = torch.randperm(len(X))
+        for start in range(0, len(X), max(1, int(batch_size))):
+            batch = order[start:start + max(1, int(batch_size))]
+            opt.zero_grad(); loss = loss_fn(net(X[batch]), y[batch]); loss.backward(); opt.step()
     def recursive(last, steps):
         hist = list(np.asarray(last, dtype=np.float32)); preds=[]; net.eval()
         with torch.no_grad():
@@ -131,12 +137,12 @@ def _lag_matrix(values, lags):
     return np.asarray(X), np.asarray(y)
 
 
-def _fit_svr(train, test, future_periods, lags=6, C=10.0, epsilon=0.1, gamma="scale"):
+def _fit_svr(train, test, future_periods, lags=6, C=10.0, epsilon=0.1, gamma="scale", kernel="rbf"):
     values = np.asarray(train, dtype=float)
     if len(values) <= lags + 5:
         raise ValueError(f"SVR requires more than {lags + 5} training observations; got {len(values)}.")
     X, y = _lag_matrix(values, lags)
-    model = make_pipeline(StandardScaler(), SVR(C=float(C), epsilon=float(epsilon), gamma=gamma))
+    model = make_pipeline(StandardScaler(), SVR(C=float(C), epsilon=float(epsilon), gamma=gamma, kernel=kernel))
     model.fit(X, y)
     history = list(values)
     steps = len(test) + int(future_periods)
@@ -165,22 +171,43 @@ def _seasonal_naive_forecast(train, steps, season_length):
 def compare_forecasters(series: pd.Series, models=None, test_fraction=0.2, arima_order=(1,1,1),
                         seasonal_order=(1,0,1,4), future_periods=4, frequency="W",
                         lstm_lookback=6, lstm_epochs=80, svr_lags=6,
-                        seasonal_period=4):
+                        seasonal_period=4, settings=None):
     """Chronological holdout evaluation and optional future forecasts.
 
     Fits each model using only the training segment for holdout scoring, then
     refits on the full observed series for future forecasts. No random shuffle.
     """
-    models = models or ["Naive", "Seasonal Naive", "ARIMA", "SARIMA", "Prophet", "SVR", "LSTM"]
-    s = pd.Series(series).dropna().astype(float).sort_index()
-    if len(s) < 12:
+    cfg=(settings or {}).get("forecasting", {})
+    models = models or cfg.get("models") or ["Naive", "Seasonal Naive", "ARIMA", "SARIMA", "Prophet", "SVR", "LSTM"]
+    test_fraction=float(cfg.get("test_fraction", test_fraction)) if settings is not None else float(test_fraction)
+    future_periods=int(cfg.get("horizon", future_periods)) if settings is not None else int(future_periods)
+    frequency=cfg.get("frequency", frequency) if settings is not None else frequency
+    arima_order=tuple(cfg.get("arima_order", arima_order)) if settings is not None else tuple(arima_order)
+    seasonal_cfg=cfg.get("sarima_order", seasonal_order) if settings is not None else seasonal_order
+    seasonal_order=tuple(seasonal_cfg)
+    seasonal_period=int(cfg.get("seasonal_period", seasonal_period)) if settings is not None else int(seasonal_period)
+    lstm_lookback=int(cfg.get("lstm_lookback", lstm_lookback)) if settings is not None else int(lstm_lookback)
+    lstm_epochs=int(cfg.get("lstm_epochs", lstm_epochs)) if settings is not None else int(lstm_epochs)
+    svr_lags=int(cfg.get("svr_lags", svr_lags)) if settings is not None else int(svr_lags)
+    # Preserve the regular time index. Dropping missing bins would collapse gaps
+    # and make lag/seasonal models treat non-adjacent observations as consecutive.
+    s = pd.Series(series).astype(float).sort_index()
+    if s.index.has_duplicates:
+        s = s.groupby(level=0).mean()
+    if s.notna().sum() < 12:
         raise ValueError("At least 12 regularly spaced observations are required.")
     n_test = max(2, int(np.ceil(len(s) * float(test_fraction))))
     if len(s) - n_test < 8:
         raise ValueError("The chronological split leaves fewer than eight training observations. Use more time points or a smaller holdout fraction.")
     train, test = s.iloc[:-n_test], s.iloc[-n_test:]
-    train_fit = train.interpolate(method="time", limit_direction="forward").ffill().bfill()
-    full_fit = s.interpolate(method="time", limit_direction="forward").ffill().bfill()
+    # Imputation is fitted within each training window. Never backfill from
+    # future holdout observations; preserve the test index and NaNs for metrics.
+    train_fit = train.interpolate(method="time", limit_direction="forward").ffill()
+    if train_fit.isna().any():
+        raise ValueError("Training series contains leading missing periods that cannot be imputed without future information.")
+    full_fit = s.interpolate(method="time", limit_direction="forward").ffill()
+    if full_fit.isna().any():
+        raise ValueError("Series contains leading missing periods that cannot be imputed from observed history.")
     rows=[]; predictions={}; future_frames={}
     future_idx = pd.date_range(s.index[-1], periods=int(future_periods)+1, freq=frequency)[1:]
     for name in models:
@@ -200,16 +227,16 @@ def compare_forecasters(series: pd.Series, models=None, test_fraction=0.2, arima
                 fitted = _fit_sarima(full_fit, pd.Series([np.nan], index=[future_idx[0]]), tuple(arima_order), tuple(seasonal_order))[1]
                 future = pd.Series(np.asarray(fitted.forecast(steps=future_periods)), index=future_idx)
             elif name == "Prophet":
-                pred, _ = _fit_prophet(train_fit, test, future_periods, frequency)
-                _, future_df = _fit_prophet(full_fit, pd.Series(dtype=float), future_periods, frequency)
+                pred, _ = _fit_prophet(train_fit, test, future_periods, frequency, cfg.get("prophet_yearly") if settings is not None else None, cfg.get("prophet_weekly") if settings is not None else None)
+                _, future_df = _fit_prophet(full_fit, pd.Series(dtype=float), future_periods, frequency, cfg.get("prophet_yearly") if settings is not None else None, cfg.get("prophet_weekly") if settings is not None else None)
                 future = pd.Series(future_df["yhat"].to_numpy(), index=pd.to_datetime(future_df["ds"]))
             elif name == "SVR":
-                pred, fut, _ = _fit_svr(train_fit, test, future_periods, lags=svr_lags)
-                _, fut_full, _ = _fit_svr(full_fit, pd.Series(dtype=float), future_periods, lags=svr_lags)
+                pred, fut, _ = _fit_svr(train_fit, test, future_periods, lags=svr_lags, C=cfg.get("svr_c", 1.0), epsilon=cfg.get("svr_epsilon", 0.1), gamma=cfg.get("svr_gamma", "scale"), kernel=cfg.get("svr_kernel", "rbf"))
+                _, fut_full, _ = _fit_svr(full_fit, pd.Series(dtype=float), future_periods, lags=svr_lags, C=cfg.get("svr_c", 1.0), epsilon=cfg.get("svr_epsilon", 0.1), gamma=cfg.get("svr_gamma", "scale"), kernel=cfg.get("svr_kernel", "rbf"))
                 future = pd.Series(fut_full, index=future_idx)
             elif name == "LSTM":
-                pred, _ = _fit_lstm(train_fit, test, future_periods, lookback=lstm_lookback, epochs=lstm_epochs)
-                _, fut = _fit_lstm(full_fit, pd.Series(dtype=float), future_periods, lookback=lstm_lookback, epochs=lstm_epochs)
+                pred, _ = _fit_lstm(train_fit, test, future_periods, lookback=lstm_lookback, epochs=lstm_epochs, hidden_size=cfg.get("lstm_units", 32), seed=(settings or {}).get("comparison", {}).get("random_state", 42), batch_size=cfg.get("lstm_batch_size", 16), learning_rate=cfg.get("lstm_learning_rate", 0.001))
+                _, fut = _fit_lstm(full_fit, pd.Series(dtype=float), future_periods, lookback=lstm_lookback, epochs=lstm_epochs, hidden_size=cfg.get("lstm_units", 32), seed=(settings or {}).get("comparison", {}).get("random_state", 42), batch_size=cfg.get("lstm_batch_size", 16), learning_rate=cfg.get("lstm_learning_rate", 0.001))
                 future = pd.Series(fut, index=future_idx)
             else:
                 raise ValueError(f"Unsupported forecasting model: {name}")

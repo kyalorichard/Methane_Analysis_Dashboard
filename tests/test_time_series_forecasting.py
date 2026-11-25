@@ -48,3 +48,18 @@ def test_expanded_forecasters_include_baselines_sarima_and_svr():
         assert metrics.loc[model, 'n_test'] == 12
         assert len(result['predictions'][model]) == 12
         assert len(result['future'][model]) == 4
+
+
+def test_forecaster_preserves_missing_time_bins_in_holdout():
+    import numpy as np
+    import pandas as pd
+    from analysis_engine.time_series_forecasting import compare_forecasters
+    idx = pd.date_range("2020-01-05", periods=30, freq="W")
+    values = np.linspace(10, 20, 30)
+    values[8] = np.nan
+    values[25] = np.nan
+    series = pd.Series(values, index=idx)
+    result = compare_forecasters(series, models=["Naive"], test_fraction=0.2, future_periods=2, frequency="W")
+    assert len(result["actual"]) == 6
+    assert result["actual"].index.equals(idx[-6:])
+    assert result["metrics"].iloc[0]["n_test"] == 5

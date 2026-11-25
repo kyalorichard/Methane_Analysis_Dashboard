@@ -10,7 +10,10 @@ from sklearn.base import clone
 from analysis_engine.ml import REGRESSORS
 from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
+from analysis_engine.settings_config import load_active_settings
 render_sidebar_navigation()
+_cfg = load_active_settings(st.session_state)
+_cmp_cfg = _cfg.get("comparison", {})
 
 header('Variable importance & model explainability','Compare selected regression models and estimate predictor importance using a held-out set of animals.')
 df=get_data();nums=numeric_cols(df);r=get_roles(df);ycol=choose_col(df,'Target',r.get('methane'),nums);animal=choose_col(df,'Animal ID',r.get('animal_id'))
@@ -19,11 +22,16 @@ model_names=list(REGRESSORS)
 mode=st.radio('Models to explain',['Compare all available models','Select specific models'],horizontal=True,key='importance_selection_mode')
 selected=model_names if mode.startswith('Compare') else st.multiselect('Models for importance assessment',model_names,default=model_names[:3],key='importance_selected_models')
 repeats=st.slider('Permutation repeats',5,30,10)
+test_fraction=float(_cmp_cfg.get('test_size', 0.25))
+random_seed=int(_cmp_cfg.get('random_state', 42))
+group_column=str(_cmp_cfg.get('group_column') or animal)
+if group_column not in df.columns: group_column = animal
+if group_column != animal: st.info(f'Central validation grouping is configured as {group_column}; this page uses the selected Animal ID column ({animal}) for its animal-held-out explanation split.')
 if st.button('Fit selected models and calculate variable importance',type='primary',disabled=(not features or not selected)):
     d=df[[ycol,animal]+features].copy();d[ycol]=pd.to_numeric(d[ycol],errors='coerce');d=d.dropna(subset=[ycol,animal])
     if d[animal].nunique()<5: st.error('At least five unique animals are required for a grouped holdout split.')
     else:
-        split=GroupShuffleSplit(n_splits=1,test_size=.25,random_state=42);tr,te=next(split.split(d[features],d[ycol],groups=d[animal]))
+        split=GroupShuffleSplit(n_splits=1,test_size=test_fraction,random_state=random_seed);tr,te=next(split.split(d[features],d[ycol],groups=d[animal]))
         Xtr,Xte=d.iloc[tr][features],d.iloc[te][features];ytr,yte=d.iloc[tr][ycol],d.iloc[te][ycol]
         num=[c for c in features if pd.api.types.is_numeric_dtype(d[c])];cat=[c for c in features if c not in num]
         prep=ColumnTransformer([('num',Pipeline([('imp',SimpleImputer(strategy='median')),('scale',StandardScaler())]),num),('cat',Pipeline([('imp',SimpleImputer(strategy='most_frequent')),('oh',OneHotEncoder(handle_unknown='ignore'))]),cat)])
@@ -33,7 +41,7 @@ if st.button('Fit selected models and calculate variable importance',type='prima
             try:
                 model=Pipeline([('prep',clone(prep)),('model',clone(REGRESSORS[name]))]);model.fit(Xtr,ytr);pred=model.predict(Xte)
                 metric_rows.append({'model':name,'heldout_animals':d.iloc[te][animal].nunique(),'n_test_records':len(te),'rmse':mean_squared_error(yte,pred)**.5,'mae':mean_absolute_error(yte,pred),'r2':r2_score(yte,pred)})
-                pi=permutation_importance(model,Xte,yte,n_repeats=repeats,random_state=42,scoring='neg_root_mean_squared_error')
+                pi=permutation_importance(model,Xte,yte,n_repeats=repeats,random_state=random_seed,scoring='neg_root_mean_squared_error')
                 for f,mean,sd in zip(features,pi.importances_mean,pi.importances_std): importance_rows.append({'model':name,'feature':f,'importance_mean':mean,'importance_sd':sd})
             except Exception as e: metric_rows.append({'model':name,'error':str(e)[:200]})
             progress.progress((i+1)/len(selected))

@@ -12,18 +12,38 @@ from sklearn.metrics import make_scorer,mean_absolute_error,root_mean_squared_er
 from sklearn.base import clone
 
 REGRESSORS={"Ridge":Ridge(),"Elastic Net":ElasticNet(max_iter=10000),"Random Forest":RandomForestRegressor(n_estimators=300,random_state=42,n_jobs=-1),"Extra Trees":ExtraTreesRegressor(n_estimators=300,random_state=42,n_jobs=-1),"HistGradientBoosting":HistGradientBoostingRegressor(random_state=42),"SVR":SVR(),"KNN":KNeighborsRegressor()}
-def grouped_regression_benchmark(df,outcome,features,animal_id,n_splits=5,selected_models=None):
+
+def configured_estimator(name, settings=None):
+    """Instantiate a catalogue estimator using the active project model settings."""
+    if name not in REGRESSORS:
+        raise ValueError(f"Unknown model name: {name}")
+    settings = settings or {}
+    model = clone(REGRESSORS[name])
+    params = model.get_params(deep=False)
+    requested = (settings.get("models") or {}).get(name, {})
+    model.set_params(**{k: v for k, v in requested.items() if k in params})
+    if "random_state" in params:
+        model.set_params(random_state=int((settings.get("comparison") or {}).get("random_state", 42)))
+    return model
+def grouped_regression_benchmark(df,outcome,features,animal_id,n_splits=5,selected_models=None,settings=None):
     d=df[[outcome,animal_id]+features].dropna(subset=[outcome,animal_id]).copy()
     y=pd.to_numeric(d[outcome],errors="coerce")
     valid=y.notna(); d=d.loc[valid]; y=y.loc[valid]
     if d[animal_id].nunique()<3: raise ValueError("At least three unique animals are required for grouped validation.")
     groups=d[animal_id].astype(str)
     n_splits=min(n_splits,groups.nunique())
+    settings = settings or {}
+    preprocessing = settings.get("preprocessing", {})
+    impute_num = preprocessing.get("numeric_imputation", "median")
+    impute_cat = preprocessing.get("categorical_imputation", "most_frequent")
+    scale_numeric = bool(preprocessing.get("scale_numeric", True))
     numeric=[c for c in features if pd.api.types.is_numeric_dtype(d[c])]
     categorical=[c for c in features if c not in numeric]
+    numeric_steps=[("impute",SimpleImputer(strategy=impute_num))]
+    if scale_numeric: numeric_steps.append(("scale",StandardScaler()))
     prep=ColumnTransformer([
-      ("num",Pipeline([("impute",SimpleImputer(strategy="median")),("scale",StandardScaler())]),numeric),
-      ("cat",Pipeline([("impute",SimpleImputer(strategy="most_frequent")),("onehot",OneHotEncoder(handle_unknown="ignore",sparse_output=False))]),categorical)
+      ("num",Pipeline(numeric_steps),numeric),
+      ("cat",Pipeline([("impute",SimpleImputer(strategy=impute_cat)),("onehot",OneHotEncoder(handle_unknown="ignore",sparse_output=False))]),categorical)
     ])
     cv=GroupKFold(n_splits=n_splits)
     rows=[]
@@ -32,8 +52,8 @@ def grouped_regression_benchmark(df,outcome,features,animal_id,n_splits=5,select
     if unknown: raise ValueError(f"Unknown model names: {unknown}")
     if not model_names: raise ValueError("Select at least one model to benchmark.")
     for name in model_names:
-        model = REGRESSORS[name]
-        pipe=Pipeline([("prep",prep),("model",clone(model))])
+        model = configured_estimator(name, settings)
+        pipe=Pipeline([("prep",prep),("model",model)])
         try:
             scores=cross_validate(pipe,d[features],y,groups=groups,cv=cv,
                 scoring={"r2":"r2","mae":"neg_mean_absolute_error","rmse":"neg_root_mean_squared_error"},
@@ -47,19 +67,25 @@ def grouped_regression_benchmark(df,outcome,features,animal_id,n_splits=5,select
 
 def nested_grouped_regression_benchmark(df, outcome, features, animal_id,
                                        outer_splits=5, inner_splits=3,
-                                       selected_models=None, random_state=42):
+                                       selected_models=None, random_state=42, settings=None):
     """Nested animal-grouped CV for less optimistic model comparison.
 
     Hyperparameters are selected only inside each outer training fold. All records
     from an animal remain in the same outer and inner fold.
     """
-    from sklearn.model_selection import GridSearchCV
+    from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
     from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, HistGradientBoostingRegressor
     from sklearn.linear_model import Ridge, ElasticNet
     from sklearn.svm import SVR
     from sklearn.neighbors import KNeighborsRegressor
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from sklearn.base import clone
+
+    settings = settings or {}
+    cmp_cfg = settings.get("comparison", {})
+    prep_cfg = settings.get("preprocessing", {})
+    outer_splits = int(cmp_cfg.get("n_splits", outer_splits))
+    random_state = int(cmp_cfg.get("random_state", random_state))
 
     if not features:
         raise ValueError("Select at least one predictor.")
@@ -76,9 +102,8 @@ def nested_grouped_regression_benchmark(df, outcome, features, animal_id,
     numeric = [c for c in features if pd.api.types.is_numeric_dtype(d[c])]
     categorical = [c for c in features if c not in numeric]
     prep = ColumnTransformer([
-        ("num", Pipeline([("impute", SimpleImputer(strategy="median")),
-                          ("scale", StandardScaler())]), numeric),
-        ("cat", Pipeline([("impute", SimpleImputer(strategy="most_frequent")),
+        ("num", Pipeline(([ ("impute", SimpleImputer(strategy=prep_cfg.get("numeric_imputation", "median"))) ] + ([ ("scale", StandardScaler()) ] if prep_cfg.get("scale_numeric", True) else []))), numeric),
+        ("cat", Pipeline([("impute", SimpleImputer(strategy=prep_cfg.get("categorical_imputation", "most_frequent"))),
                           ("onehot", OneHotEncoder(handle_unknown="ignore"))]), categorical)
     ])
     catalogue = {
@@ -112,9 +137,12 @@ def nested_grouped_regression_benchmark(df, outcome, features, animal_id,
                 errors.append(f"Outer fold {fold}: fewer than two training groups for inner CV.")
                 continue
             pipe=Pipeline([("prep",clone(prep)),("model",clone(estimator))])
-            search=GridSearchCV(pipe, grid, cv=GroupKFold(n_splits=inner_n),
-                                scoring="neg_root_mean_squared_error", n_jobs=-1,
-                                refit=True, error_score="raise")
+            search_cls = RandomizedSearchCV if cmp_cfg.get("tuning_method", "random") == "random" else GridSearchCV
+            search_kwargs = {"cv":GroupKFold(n_splits=inner_n), "scoring":"neg_root_mean_squared_error", "n_jobs":-1, "refit":True, "error_score":"raise"}
+            if search_cls is RandomizedSearchCV:
+                search=search_cls(pipe, grid, n_iter=int(cmp_cfg.get("tuning_iter", 50)), random_state=random_state, **search_kwargs)
+            else:
+                search=search_cls(pipe, grid, **search_kwargs)
             try:
                 search.fit(d.iloc[tr][features], d.iloc[tr][outcome],
                            groups=train_groups)

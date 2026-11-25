@@ -8,11 +8,18 @@ from analysis_engine.io import dataframe_to_parquet_bytes
 from platform_core.data_governance import inspect_dataset
 
 ROOT = Path(os.getenv('LOCAL_PROJECT_STORAGE_DIR', 'data/local_workspace')).expanduser().resolve()
-DB = ROOT / 'workspace.sqlite3'
+def _db_path():
+    # One optional SQLite metadata file can hold workspace, settings, experiments
+    # and run-history tables. Legacy LOCAL_WORKSPACE_DB remains an explicit override.
+    return Path(os.getenv('METHANE_METADATA_DB') or os.getenv('LOCAL_WORKSPACE_DB') or 'data/methane_metadata.sqlite3').expanduser().resolve()
+
+DB = _db_path()
 
 def _connect():
     ROOT.mkdir(parents=True, exist_ok=True)
-    con=sqlite3.connect(DB, timeout=30)
+    db_path = _db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    con=sqlite3.connect(db_path, timeout=30)
     con.row_factory=sqlite3.Row
     con.execute('PRAGMA journal_mode=WAL')
     con.execute('PRAGMA foreign_keys=ON')
@@ -21,6 +28,8 @@ def _connect():
     CREATE TABLE IF NOT EXISTS datasets(id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, project_id TEXT NOT NULL, name TEXT NOT NULL, species TEXT NOT NULL, storage_path TEXT NOT NULL, file_format TEXT NOT NULL, source_format TEXT, sha256 TEXT, row_count INTEGER, protocol_json TEXT, qc_summary TEXT, created_at TEXT NOT NULL, FOREIGN KEY(project_id) REFERENCES projects(id));
     CREATE TABLE IF NOT EXISTS versions(id INTEGER PRIMARY KEY AUTOINCREMENT, tenant_id TEXT NOT NULL, project_id TEXT NOT NULL, version_number INTEGER NOT NULL, snapshot_json TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(tenant_id,project_id,version_number));
     ''')
+    from platform_core.metadata_migrations import migrate_legacy_metadata
+    migrate_legacy_metadata(db_path)
     return con
 
 def _now(): return datetime.now(timezone.utc).isoformat()
