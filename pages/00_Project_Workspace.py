@@ -69,11 +69,12 @@ with open_tab:
         chosen_dataset_label = st.selectbox("Dataset to restore (optional)", list(dataset_choices), key="open_project_dataset_choice")
         if st.button("Open project", type="primary", key="open_saved_project_action"):
             previous_project_id = st.session_state.get("active_project_id")
-            if previous_project_id and previous_project_id != open_project["id"]:
-                for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+            if previous_project_id != open_project["id"]:
+                for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
                     st.session_state.pop(state_key, None)
                 st.session_state.pop("analysis_settings_scope_key", None)
             st.session_state["active_project_id"] = open_project["id"]
+            st.session_state["active_project_name"] = open_project["name"]
             st.session_state["active_project_species"] = open_project["species"]
             st.session_state["species"] = open_project["species"]
             st.session_state["analysis_project_scope"] = open_project["id"]
@@ -94,6 +95,7 @@ with open_tab:
                     st.session_state["raw_data_snapshot"] = restored_df.copy(deep=True)
                     st.session_state["cleaning_log"] = []
                     st.session_state["data_name"] = restored_name
+                    st.session_state["active_dataset_name"] = restored_name
                     st.session_state["active_dataset_id"] = chosen_dataset["id"]
                     st.session_state["species"] = saved_config.get("species") or restored_species
                     st.session_state["roles"] = saved_config.get("variable_mapping") or infer_species_roles(restored_df.columns, restored_species)
@@ -108,7 +110,7 @@ with open_tab:
                     st.error(f"Project opened, but the selected dataset could not be restored: {exc}")
                     st.stop()
             else:
-                for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration"):
+                for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration"):
                     st.session_state.pop(state_key, None)
             st.success(f"Opened project: {open_project['name']}")
             st.rerun()
@@ -137,7 +139,10 @@ with create_tab:
                 species = next(p.key for p in PROFILES.values() if p.label == species_label)
                 pid = create_project(principal.tenant_id, principal.subject, new_name.strip(), species, description.strip())
                 st.session_state["last_opened_project_id"] = pid
+                for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration"):
+                    st.session_state.pop(state_key, None)
                 st.session_state["active_project_id"] = pid
+                st.session_state["active_project_name"] = new_name.strip()
                 st.session_state["active_project_species"] = species
                 st.session_state["analysis_project_scope"] = pid
                 st.success(f"Project created successfully (ID: {pid}). It is now selected as your active project.")
@@ -147,29 +152,33 @@ with create_tab:
 
 with import_tab:
     st.subheader("Import a complete project archive")
-    st.write("Restore a project exported from this platform. The archive contains project metadata, datasets in canonical Parquet format, measurement protocols, and available user/project-scoped analysis settings and experiment records.")
+    st.write("Restore a project exported from this platform. The archive contains project metadata, canonical Parquet datasets, measurement protocols, project settings, and—when included—reopenable analysis runs with their input snapshots, result tables and figures.")
     archive_file = st.file_uploader("Select project ZIP archive", type=["zip"], key="project_archive_upload", help="Maximum archive size: 200 MB. The archive is validated before any project is created.")
     if archive_file is not None:
         archive_bytes = archive_file.getvalue()
         try:
             preview = inspect_project_archive(archive_bytes)
             source_project = preview["project"]
-            st.success("Archive structure and dataset SHA-256 checks passed.")
+            st.success("Archive structure, dataset and analysis-artifact integrity checks passed.")
             a, b, c = st.columns(3)
             a.metric("Source project", source_project["name"])
             b.metric("Species", source_project["species"].title())
             c.metric("Datasets", len(preview["datasets"]))
+            st.metric("Analysis runs", len(preview.get("analysis_runs", [])))
             st.dataframe(pd.DataFrame([{"Dataset": d.get("original_filename"), "Species": d.get("species"), "Rows": d.get("row_count"), "Columns": d.get("column_count")} for d in preview["datasets"]]), use_container_width=True, hide_index=True)
             destination_name = st.text_input("Name for imported project", value=source_project["name"], key="import_project_name")
-            restore_state = st.checkbox("Restore included analysis settings and experiment metadata", value=True, help="Restores metadata under your account and the imported project name. It does not recreate fitted model binaries or historical result files.")
+            restore_state = st.checkbox("Restore included settings, experiment records and analysis runs", value=True, help="Restores project settings and analysis history under the new project. Reopenable result artifacts include saved input data, tables and figures; fitted model binaries are not included.")
             confirm_import = st.checkbox("I understand this creates a new project and does not overwrite an existing project.", key="confirm_project_import")
             if st.button("Import project", type="primary", disabled=not (destination_name.strip() and confirm_import), key="execute_project_import"):
                 with st.spinner("Importing project metadata and datasets into tenant storage..."):
                     result = import_project_archive(archive_bytes, principal.tenant_id, principal.subject, destination_name, restore_state)
-                st.success(f"Imported '{result['project_name']}' with {result['datasets_imported']} dataset(s). New project ID: {result['project_id']}")
+                st.success(f"Imported '{result['project_name']}' with {result['datasets_imported']} dataset(s) and {result.get('analysis_runs_imported', 0)} analysis run(s). New project ID: {result['project_id']}")
+                for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration"):
+                    st.session_state.pop(state_key, None)
                 st.session_state["last_imported_project_id"] = result["project_id"]
                 st.session_state["last_opened_project_id"] = result["project_id"]
                 st.session_state["active_project_id"] = result["project_id"]
+                st.session_state["active_project_name"] = destination_name
                 st.rerun()
         except Exception as exc:
             st.error(f"Archive validation failed: {exc}")
@@ -185,7 +194,12 @@ default_label = next((label for label, item in project_labels.items() if item["i
 selected_label = st.selectbox("Active project", list(project_labels), index=list(project_labels).index(default_label), key="workspace_active_project")
 project = project_labels[selected_label]
 project_id = project["id"]
+previous_active_project_id = st.session_state.get("active_project_id")
+if previous_active_project_id != project_id:
+    for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration"):
+        st.session_state.pop(state_key, None)
 st.session_state["active_project_id"] = project_id
+st.session_state["active_project_name"] = project["name"]
 st.session_state["active_project_species"] = project["species"]
 st.session_state["species"] = project["species"]
 st.session_state["analysis_project_scope"] = project_id
@@ -219,6 +233,7 @@ with manage_tab:
             st.session_state["raw_data_snapshot"] = df.copy(deep=True)
             st.session_state["cleaning_log"] = []
             st.session_state["data_name"] = name
+            st.session_state["active_dataset_name"] = name
             st.session_state["species"] = species
             st.session_state["active_dataset_id"] = selected["id"]
             st.session_state["active_project_id"] = project_id
@@ -336,8 +351,8 @@ with lifecycle_tab:
 
     st.divider()
     st.subheader("Export / backup project")
-    st.write("Creates a portable ZIP with project metadata, all stored datasets as Parquet, measurement protocols, SHA-256 integrity hashes, and available user/project-scoped analysis settings and experiment metadata. Fitted model binaries, raw execution logs and historical result files are not included unless separately stored as datasets.")
-    include_state = st.checkbox("Include analysis settings and experiment metadata", value=True, key="export_research_state")
+    st.write("Creates a portable ZIP with project metadata, stored datasets as Parquet, measurement protocols, SHA-256 integrity hashes, project settings and experiment metadata. When research state is included, it also packages analysis-run manifests, input dataset snapshots, result tables and saved figures. Fitted model binaries and raw execution logs are not included.")
+    include_state = st.checkbox("Include analysis settings, experiment metadata and full analysis-run artifacts", value=True, key="export_research_state")
     if st.button("Prepare project export", type="primary", key="prepare_project_export"):
         try:
             with st.spinner("Building portable project archive..."):

@@ -7,7 +7,7 @@ It deliberately avoids treating uncalibrated sensor signals as methane mass flux
 from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
-import json, hashlib, platform, zipfile
+import json, hashlib, platform, zipfile, importlib.metadata, os
 import numpy as np
 import pandas as pd
 from .metrics import descriptive_table
@@ -134,6 +134,10 @@ def run_integrated_analysis(df: pd.DataFrame, *, dataset_name="active_dataset", 
         "Predictive validation is grouped by animal to reduce repeated-record leakage.",
         "Clustering and phenotype classes require stability and external biological validation before biological interpretation."
     ]
+    package_versions = {}
+    for package in ("numpy", "scipy", "pandas", "scikit-learn", "statsmodels", "plotly", "pyarrow"):
+        try: package_versions[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError: package_versions[package] = None
     manifest={
         "run_timestamp_utc":datetime.now(timezone.utc).isoformat(),
         "dataset_name":dataset_name,"species":species,"outcome":outcome,
@@ -141,6 +145,7 @@ def run_integrated_analysis(df: pd.DataFrame, *, dataset_name="active_dataset", 
         "covariates":covariates,"ml_features":ml_features or [],
         "ml_models":ml_models or [],"run_ml":run_ml,"random_seed":seed,
         "python_version":platform.python_version(),"pandas_version":pd.__version__,
+        "package_versions":package_versions,"application_version":os.getenv("APP_VERSION") or os.getenv("GIT_COMMIT") or "unknown",
         "audit":audit,"analysis_scope":"integrated exploratory and inferential analysis"
     }
     return {"tables":outputs,"summary":summaries,"manifest":manifest}

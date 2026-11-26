@@ -14,6 +14,10 @@ streamlit run app.py
 
 The sidebar allows CSV/Excel upload and includes an optional starter dataset: `data/ICARDA_sheep_methane_phenotypes.csv`.
 
+## Phase 4 — Longitudinal and repeated-measures analytics
+
+The Longitudinal Analysis workspace now supports long-format Gaussian mixed-effects models for unbalanced animal records, numeric or date-derived elapsed time, random intercepts and optional animal-specific linear time slopes, linear or cubic-spline population trends, and treatment/group-by-time interactions. It reports complete-case exclusions, unequal visit counts, irregular time spacing, population-average fitted trajectories with 95% confidence intervals, residual diagnostic screens, and ML-based AIC/BIC sensitivity comparisons. Predictions are population means (not individual-animal prediction intervals); the workflow does not impute missing values or infer causal treatment effects. See `docs/PHASE4_LONGITUDINAL_REPEATED_MEASURES.md` for estimands, assumptions and interpretation boundaries.
+
 ## Modules and navigation
 
 The sidebar groups the research tools into:
@@ -179,3 +183,23 @@ New project uploads retain the original uploaded file separately from the canoni
 ## Research workflow navigation (2026-11-26)
 
 The primary dashboard navigation now follows the eight-stage research workflow: Research workspace; Data preparation; Phenotype discovery; Statistical inference; Machine learning; Longitudinal and emitter analysis; Advanced research; and Scientific reporting. Each Streamlit page is linked once in the primary navigation, and the landing page provides matching quick links. See `docs/RESEARCH_WORKFLOW_NAVIGATION.md` for the page-to-stage ownership map and navigation validation rules.
+
+## Phase 1 — Research workspace integration (2026-11-26)
+
+The workspace integration update adds tenant/project/user-scoped analysis run history, uses the existing PostgreSQL `analysis_runs` table in cloud mode, adds tenant-scoped PostgreSQL storage for project model settings and configuration snapshots, and adds durable prepared-dataset version saving in the Data Preparation Studio. Analytical page headers display the active project, dataset and whether the data are persisted or temporary. Switching projects clears the previous active dataset to prevent cross-project analysis state from carrying over. Apply `database/migrations/007_project_settings.sql` to existing cloud databases before using cloud settings persistence.
+
+Phase 2 adds project-scoped reproducibility artifacts. Integrated Analysis Centre runs retain the exact input snapshot, result tables, saved distribution figure, configuration and software-version provenance. The Analysis Run History page can reopen outputs, restore the archived input dataset, and restore the saved configuration for a new run. Project export/import now carries run metadata and available result artifacts. Fitted model binaries and raw execution logs are not persisted. See `docs/PHASE2_ANALYTICAL_REPRODUCIBILITY.md` for format, storage, security and validation details.
+
+## Phase 3 — Variance-component reliability
+
+The Reliability & Agreement workspace now includes a separate Gaussian random-intercept variance-component ICC for unbalanced repeated records, with optional fixed-effect occasion adjustment and subject-cluster bootstrap confidence intervals. See `docs/PHASE3_VARIANCE_COMPONENT_RELIABILITY.md` for the estimand and interpretation limits.
+
+
+## Phase 5 — Advanced inference and robustness
+
+Phase 5 extends the Advanced Inference page with Gaussian population-average GEE, cluster-robust OLS, missingness-pattern auditing, delta-adjusted missing-outcome sensitivity scenarios, and multiple-comparison correction. These methods complement rather than replace the longitudinal mixed-effects workflow. Interpretation limits and assumptions are documented in `docs/PHASE5_ADVANCED_INFERENCE_ROBUSTNESS.md`.
+
+
+## Phase 6 — Scientific reporting and publication readiness
+
+Phase 6 extends the Scientific Publication Suite with editable Word and PDF reports and a complete archival ZIP. Reports include study metadata, descriptive methods/results tables, outcome distribution and optional group figures, interpretation limitations, and a dataframe fingerprint. The ZIP also contains CSV/Excel tables, figures, and a JSON manifest. The generated report is explicitly descriptive: inferential model results, p-values, causal claims, and significance statements are not invented or silently imported. Where an animal identifier is supplied, independent-unit summaries use animal-level aggregation. Install the updated `python-docx` and `reportlab` dependencies to enable document exports. See `docs/PHASE6_SCIENTIFIC_REPORTING_PUBLICATION_READINESS.md` for assumptions, validation and investigator review requirements.

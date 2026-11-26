@@ -15,3 +15,6 @@ platform_data/
 # Local research workspace datasets and immutable source uploads
 data/local_workspace/
 data/raw_archive/
+
+# Persistent local analysis result artifacts
+data/analysis_artifacts/

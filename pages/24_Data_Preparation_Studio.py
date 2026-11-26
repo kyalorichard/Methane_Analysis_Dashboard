@@ -109,3 +109,58 @@ else:
 
 st.download_button("Download current prepared dataset (CSV)",current.to_csv(index=False).encode("utf-8"),
                    file_name="prepared_methane_phenotype_dataset.csv",mime="text/csv")
+
+st.divider()
+st.subheader("4. Save prepared data as a project dataset version")
+project_id = st.session_state.get("active_project_id")
+source_dataset_id = st.session_state.get("active_dataset_id")
+if not project_id:
+    st.warning("Open or create a research project before saving a durable dataset version. The current prepared data remain available in this browser session.")
+else:
+    st.caption("Saving creates a new immutable project dataset. The previous saved dataset is retained, and the preparation log is attached to the new version's metadata.")
+    if st.button("Save prepared dataset version", type="primary", use_container_width=True,
+                 disabled=current is None or current.empty):
+        try:
+            from pathlib import Path
+            from datetime import datetime, timezone
+            from analysis_engine.io import dataframe_to_parquet_bytes
+            from platform_core import storage as store
+            from platform_core.auth import require_principal
+            principal = require_principal()
+            source_name = st.session_state.get("data_name", "methane_dataset")
+            stem = Path(source_name).stem or "methane_dataset"
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            version_name = f"{stem}_prepared_{timestamp}.parquet"
+            parquet_bytes = dataframe_to_parquet_bytes(current, compression="snappy")
+            species = st.session_state.get("species", "other")
+            protocol = st.session_state.get("measurement_protocol", {}) or {}
+            preparation = {
+                "prepared_at_utc": datetime.now(timezone.utc).isoformat(),
+                "source_dataset_id": source_dataset_id,
+                "source_dataset_name": source_name,
+                "operations": st.session_state.get("cleaning_log", []),
+                "records_before": len(raw),
+                "records_after": len(current),
+                "columns_before": list(map(str, raw.columns)),
+                "columns_after": list(map(str, current.columns)),
+            }
+            saved = store.save_dataset(
+                principal.tenant_id, principal.subject, project_id,
+                version_name, parquet_bytes, current, species,
+                {"preparation": preparation, "measurement_protocol": protocol,
+                 "variable_mapping": st.session_state.get("roles", {})},
+            )
+            store.save_dataset_configuration(
+                principal.tenant_id, principal.subject, project_id, saved["id"],
+                species, st.session_state.get("roles", {}), protocol,
+            )
+            st.session_state["active_dataset_id"] = saved["id"]
+            st.session_state["active_dataset_name"] = version_name
+            st.session_state["data_name"] = version_name
+            st.session_state["raw_data_snapshot"] = current.copy(deep=True)
+            st.session_state["cleaning_log"] = []
+            st.session_state["prepared_dataset_saved"] = version_name
+            st.success(f"Saved {version_name} to the active research project. The new version is now the active dataset.")
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Prepared dataset could not be saved: {exc}")

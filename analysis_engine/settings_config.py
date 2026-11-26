@@ -75,10 +75,16 @@ def load_active_settings(session_state):
     if identity:
         session_state["user_id"] = str(identity)
     project_scope = str(session_state.get("analysis_project_scope") or session_state.get("active_project_id") or "default-project")
+    tenant_id = principal.get("tenant_id")
+    from platform_core.storage import backend_name
+    if backend_name() == "cloud" and not session_state.get("active_project_id"):
+        session_state["analysis_settings"] = defaults()
+        session_state["analysis_settings_validation"] = {"errors": [], "warnings": ["Open a saved research project to load persistent cloud settings."]}
+        return session_state["analysis_settings"]
     species_scope = str(session_state.get("analysis_species_scope") or session_state.get("species") or session_state.get("active_project_species") or "all").lower()
     scope_key = f"{user_scope}|{project_scope}|{species_scope}"
     if session_state.get("analysis_settings_scope_key") != scope_key:
-        persisted, stamp = load_settings(user_scope, project_scope, species_scope)
+        persisted, stamp = load_settings(user_scope, project_scope, species_scope, tenant_id=tenant_id)
         session_state["analysis_settings"] = migrate_settings(persisted or {})
         session_state["analysis_settings_scope_key"] = scope_key
         session_state["analysis_settings_saved_at"] = stamp

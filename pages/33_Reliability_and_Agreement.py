@@ -77,8 +77,49 @@ else:
         st.warning(r["caution"])
         st.download_button("Download ICC and variance results", json.dumps({"icc": r, "variance": v}, indent=2), "repeatability_icc_results.json", "application/json")
 
+
 st.divider()
-st.header("2. Bland–Altman agreement between two measurement methods")
+st.header("2. Variance-component reliability for unbalanced repeated records")
+st.markdown("Fit an animal random-intercept model to long-format data. Unlike a complete-panel ICC, this approach can retain animals with different numbers of records. The reported ICC is the animal-level variance fraction after optional adjustment for measurement occasion.")
+if len(numeric) >= 1:
+    vc1, vc2, vc3 = st.columns(3)
+    vc_subject = vc1.selectbox("Subject / animal identifier", all_cols, key="vc_icc_subject")
+    vc_outcome = vc2.selectbox("Phenotype", numeric, key="vc_icc_outcome")
+    vc_occasion_options = ["— None —"] + [c for c in all_cols if c not in {vc_subject, vc_outcome}]
+    vc_occasion = vc3.selectbox("Optional occasion adjustment", vc_occasion_options, key="vc_icc_occasion")
+    vc_boot = st.slider("Subject-cluster bootstrap replicates", 50, 500, 200, 50, key="vc_icc_boot")
+    vc_conf = st.select_slider("Variance-component ICC confidence level", options=[0.90, 0.95, 0.99], value=0.95, key="vc_icc_conf")
+    if st.button("Fit variance-component ICC", type="primary", key="run_variance_component_icc"):
+        try:
+            result = get_service("repeatability_mixed_model")(
+                df, vc_subject, vc_outcome,
+                occasion_col=None if vc_occasion == "— None —" else vc_occasion,
+                n_boot=vc_boot, confidence=vc_conf,
+            )
+            st.session_state["r61_mixed_icc_result"] = result
+            st.session_state["r61_mixed_icc_signature"] = (vc_subject, vc_outcome, vc_occasion)
+        except Exception as exc:
+            st.session_state.pop("r61_mixed_icc_result", None)
+            st.error(f"{type(exc).__name__}: {exc}")
+    mixed_result = st.session_state.get("r61_mixed_icc_result")
+    if mixed_result and st.session_state.get("r61_mixed_icc_signature") == (vc_subject, vc_outcome, vc_occasion):
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Variance-component ICC", f"{mixed_result['icc']:.3f}")
+        m2.metric("Animals", f"{mixed_result['n_subjects']:,}")
+        m3.metric("Records", f"{mixed_result['n_records']:,}")
+        st.write(f"**{mixed_result['confidence_level']:.0%} subject-bootstrap CI:** {mixed_result['icc_ci_low']:.3f} to {mixed_result['icc_ci_high']:.3f}")
+        st.dataframe(pd.DataFrame([
+            {"Variance component": "Between-animal random intercept", "Variance": mixed_result["subject_variance"]},
+            {"Variance component": "Residual", "Variance": mixed_result["residual_variance"]},
+        ]), use_container_width=True, hide_index=True)
+        st.caption(mixed_result["estimand"] + ". " + mixed_result["occasion_adjustment"])
+        if not mixed_result["converged"]:
+            st.warning("The final mixed model did not report convergence. Treat the ICC and its interval as exploratory and inspect model diagnostics.")
+        st.warning(mixed_result["caution"])
+        st.download_button("Download variance-component ICC", json.dumps(mixed_result, indent=2), "variance_component_icc.json", "application/json")
+
+st.divider()
+st.header("3. Bland–Altman agreement between two measurement methods")
 st.markdown("Use paired measurements of the same biological quantity and compatible units. Correlation alone is not evidence of agreement.")
 if len(numeric) >= 2:
     roles = st.session_state.get("roles", {})

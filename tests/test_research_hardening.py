@@ -58,3 +58,24 @@ def test_run_registry_roundtrip(tmp_path):
     assert rows[0]["dataset_fingerprint"]=="abc"
     delete_run("run-1",db_path=db)
     assert list_runs(db_path=db)==[]
+
+
+def test_run_registry_scopes_history_by_tenant_project_and_user(tmp_path):
+    db = tmp_path / "scoped-runs.sqlite3"
+    manifest = {"dataset_name": "sheep.parquet", "species": "sheep", "outcome": "methane", "audit": {"data_sha256": "abc"}}
+    save_run("run-a", manifest, {"n": 10}, db_path=db, tenant_id="tenant-a", project_id="project-a", user_subject="user-a", dataset_id="dataset-a")
+    save_run("run-b", manifest, {"n": 20}, db_path=db, tenant_id="tenant-a", project_id="project-b", user_subject="user-a")
+    save_run("run-c", manifest, {"n": 30}, db_path=db, tenant_id="tenant-b", project_id="project-a", user_subject="user-b")
+
+    assert [r["run_id"] for r in list_runs(db_path=db, tenant_id="tenant-a", project_id="project-a", user_subject="user-a")] == ["run-a"]
+    assert [r["run_id"] for r in list_runs(db_path=db, tenant_id="tenant-a", user_subject="user-a")] == ["run-b", "run-a"]
+    assert [r["run_id"] for r in list_runs(db_path=db, tenant_id="tenant-b", user_subject="user-b")] == ["run-c"]
+
+
+def test_run_registry_keeps_legacy_unscoped_api_compatible(tmp_path):
+    db = tmp_path / "legacy-runs.sqlite3"
+    save_run("legacy", {"dataset_name": "old.csv", "species": "goat"}, {"n": 3}, db_path=db)
+    rows = list_runs(db_path=db)
+    assert len(rows) == 1
+    assert rows[0]["run_id"] == "legacy"
+    assert rows[0]["tenant_id"] is None

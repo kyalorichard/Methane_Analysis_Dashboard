@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import pandas as pd
 
 from analysis_engine.reliability import (
@@ -106,3 +107,37 @@ def test_group_comparison_page_uses_canonical_service():
     source = page.read_text()
     assert 'get_service("group_comparison")' in source
     assert "groupby([animal_col, group]" in source
+
+
+def test_mixed_model_icc_reports_variance_components_and_cluster_bootstrap():
+    from analysis_engine.reliability import estimate_mixed_model_icc
+
+    rng = np.random.default_rng(2026)
+    rows = []
+    for i in range(18):
+        animal_effect = rng.normal(0, 2.0)
+        for j in range(2 + (i % 3)):
+            rows.append({
+                "animal": f"A{i}",
+                "occasion": f"R{j % 2 + 1}",
+                "methane": 20 + animal_effect + (j % 2) * 0.8 + rng.normal(0, 0.7),
+            })
+    result = estimate_mixed_model_icc(
+        pd.DataFrame(rows), "animal", "methane", "occasion",
+        n_boot=50, random_state=19,
+    )
+    assert result["n_subjects"] == 18
+    assert result["n_records"] == len(rows)
+    assert 0 <= result["icc"] <= 1
+    assert result["icc_ci_low"] <= result["icc_ci_high"]
+    assert result["subject_variance"] >= 0
+    assert result["residual_variance"] > 0
+    assert result["occasion_adjustment"] == "Fixed effect: occasion"
+
+
+def test_mixed_model_icc_requires_repeated_subjects():
+    from analysis_engine.reliability import estimate_mixed_model_icc
+
+    df = pd.DataFrame({"animal": [f"A{i}" for i in range(8)], "y": np.arange(8, dtype=float)})
+    with pytest.raises(ValueError, match="repeated observations"):
+        estimate_mixed_model_icc(df, "animal", "y", n_boot=50)

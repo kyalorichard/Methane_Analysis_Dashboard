@@ -57,6 +57,22 @@ CREATE INDEX IF NOT EXISTS idx_datasets_project ON datasets(tenant_id,project_id
 CREATE INDEX IF NOT EXISTS idx_runs_status ON analysis_runs(tenant_id,status,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_events(tenant_id,created_at DESC);
 
+-- Project-scoped analysis settings and immutable configuration snapshots.
+CREATE TABLE IF NOT EXISTS project_settings (
+ tenant_id UUID NOT NULL, project_id UUID NOT NULL, user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ species_scope TEXT NOT NULL, payload JSONB NOT NULL DEFAULT '{}'::jsonb, updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(tenant_id,project_id,user_id,species_scope),
+ FOREIGN KEY(tenant_id,project_id) REFERENCES projects(tenant_id,id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS project_settings_history (
+ snapshot_id TEXT PRIMARY KEY, tenant_id UUID NOT NULL, project_id UUID NOT NULL,
+ user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, species_scope TEXT NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(), fingerprint TEXT NOT NULL, payload JSONB NOT NULL,
+ FOREIGN KEY(tenant_id,project_id) REFERENCES projects(tenant_id,id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_project_settings_history_scope
+ ON project_settings_history(tenant_id,project_id,user_id,species_scope,created_at DESC);
+
 -- RLS applies to all tenant-owned resources. App DB role must not own tables or BYPASSRLS.
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects FORCE ROW LEVEL SECURITY;
@@ -68,11 +84,17 @@ ALTER TABLE analysis_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analysis_runs FORCE ROW LEVEL SECURITY;
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
+ALTER TABLE project_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_settings FORCE ROW LEVEL SECURITY;
+ALTER TABLE project_settings_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_settings_history FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_projects ON projects USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 CREATE POLICY tenant_project_memberships ON project_memberships USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 CREATE POLICY tenant_datasets ON datasets USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 CREATE POLICY tenant_runs ON analysis_runs USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 CREATE POLICY tenant_audit ON audit_events USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
+CREATE POLICY tenant_project_settings ON project_settings USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
+CREATE POLICY tenant_project_settings_history ON project_settings_history USING(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid) WITH CHECK(tenant_id=NULLIF(current_setting('app.tenant_id',true),'')::uuid);
 
 -- Immutable project lifecycle snapshots (metadata and dataset manifest; dataset bytes remain in S3).
 CREATE TABLE IF NOT EXISTS project_versions (

@@ -496,7 +496,21 @@ def get_roles(df):
     return roles
 
 
+def render_workspace_context():
+    """Show the active research context consistently across analytical pages."""
+    project_name = st.session_state.get("active_project_name")
+    dataset_name = st.session_state.get("active_dataset_name") or st.session_state.get("data_name")
+    if not project_name and not dataset_name:
+        return
+    project_label = project_name or "No project selected"
+    dataset_label = dataset_name or "No dataset loaded"
+    persisted = bool(st.session_state.get("active_dataset_id"))
+    dataset_state = "Saved project dataset" if persisted else ("Temporary session dataset" if dataset_name else "No dataset")
+    st.caption(f"**Project:** {project_label}  ·  **Dataset:** {dataset_label}  ·  **Data state:** {dataset_state}")
+
+
 def header(title, subtitle, badge="ACTIVE DATASET"):
+    render_workspace_context()
     st.markdown(
         f"<div class='hero'><span class='tag'>{badge}</span>"
         f"<h1>{title}</h1><p>{subtitle}</p></div>",
@@ -708,12 +722,14 @@ def render_sidebar_navigation():
                 chosen = st.selectbox("Project", labels, index=labels.index(default), key="shared_project_switch")
                 selected_project = opts[chosen]
                 previous_project = st.session_state.get("active_project_id")
-                if previous_project and previous_project != selected_project["id"]:
-                    for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+                if previous_project != selected_project["id"]:
+                    for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
                         st.session_state.pop(state_key, None)
                     st.session_state.pop("analysis_settings_scope_key", None)
                     st.session_state.pop("analysis_species_scope", None)
+                    st.session_state.pop("active_dataset_name", None)
                 st.session_state["active_project_id"] = selected_project["id"]
+                st.session_state["active_project_name"] = selected_project["name"]
                 st.session_state["active_project_species"] = selected_project["species"]
                 st.session_state["analysis_project_scope"] = selected_project["id"]
                 st.session_state["analysis_species_scope"] = selected_project["species"].lower()
@@ -734,6 +750,7 @@ def render_sidebar_navigation():
                 st.session_state["raw_data_snapshot"] = item["data"].copy(deep=True)
                 st.session_state["cleaning_log"] = []
                 st.session_state["data_name"] = item["name"]
+                st.session_state["active_dataset_name"] = item["name"]
                 st.session_state["species"] = item["species"]
                 from .io import infer_roles
                 st.session_state["roles"] = infer_roles(item["data"])

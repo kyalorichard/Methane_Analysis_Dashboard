@@ -264,3 +264,112 @@ def within_between_variability(panel: pd.DataFrame) -> dict[str, Any]:
         "within_subject_fraction": within / total if total > 0 else np.nan,
         "note": "Balanced-panel method-of-moments decomposition. Within-subject variance includes occasion effects and residual variation; it is not pure measurement error.",
     }
+
+
+def estimate_mixed_model_icc(
+    df: pd.DataFrame,
+    subject_col: str,
+    value_col: str,
+    occasion_col: str | None = None,
+    n_boot: int = 200,
+    confidence: float = 0.95,
+    random_state: int = 42,
+    reml: bool = True,
+) -> dict[str, Any]:
+    """Estimate an occasion-adjusted random-intercept ICC for long/unbalanced data.
+
+    The estimand is Var(subject intercept) / [Var(subject intercept) + Var(residual)].
+    If ``occasion_col`` is supplied, occasion is included as a fixed effect; this
+    adjusts the mean structure but does not create a random occasion component.
+    Uncertainty is estimated by resampling independent subjects (cluster bootstrap).
+    """
+    import statsmodels.formula.api as smf
+
+    if subject_col not in df or value_col not in df:
+        raise KeyError("Subject and phenotype columns must exist in the dataframe.")
+    if occasion_col is not None and occasion_col not in df:
+        raise KeyError(f"Occasion column not found: {occasion_col}")
+    if int(n_boot) < 50:
+        raise ValueError("Use at least 50 subject-cluster bootstrap replicates.")
+    if not 0.80 <= float(confidence) <= 0.99:
+        raise ValueError("confidence must be between 0.80 and 0.99.")
+
+    cols = [subject_col, value_col] + ([occasion_col] if occasion_col else [])
+    d = df[cols].copy()
+    d[value_col] = pd.to_numeric(d[value_col], errors="coerce")
+    d[value_col] = d[value_col].replace([np.inf, -np.inf], np.nan)
+    d = d.dropna(subset=[subject_col, value_col] + ([occasion_col] if occasion_col else []))
+    counts = d.groupby(subject_col).size()
+    d = d[d[subject_col].isin(counts[counts >= 2].index)].copy()
+    n_subjects = int(d[subject_col].nunique())
+    if n_subjects < 5:
+        raise ValueError("At least five subjects with repeated observations are required for this variance-component ICC.")
+    if d[value_col].nunique() < 2:
+        raise ValueError("The phenotype has no variation; ICC is undefined.")
+
+    def fit_icc(frame: pd.DataFrame) -> tuple[float, float, float, bool]:
+        # A stable internal grouping name prevents quoting problems with source columns.
+        work = pd.DataFrame({"_y": frame[value_col].to_numpy(), "_subject": frame[subject_col].astype(str).to_numpy()})
+        formula = "_y ~ 1"
+        if occasion_col:
+            work["_occasion"] = frame[occasion_col].astype(str).to_numpy()
+            formula += " + C(_occasion)"
+        model = smf.mixedlm(formula, work, groups=work["_subject"], re_formula="1")
+        fitted = None
+        for method in ("lbfgs", "powell", "bfgs", "cg"):
+            try:
+                candidate = model.fit(reml=reml, method=method, maxiter=1500, disp=False)
+                fitted = candidate
+                if candidate.converged:
+                    break
+            except Exception:
+                continue
+        if fitted is None:
+            raise RuntimeError("Random-intercept variance-component model failed to fit.")
+        subject_var = float(np.asarray(fitted.cov_re)[0, 0])
+        residual_var = float(fitted.scale)
+        total = subject_var + residual_var
+        icc = subject_var / total if total > 0 else np.nan
+        return float(icc), subject_var, residual_var, bool(fitted.converged)
+
+    estimate, subject_var, residual_var, converged = fit_icc(d)
+    if not np.isfinite(estimate):
+        raise ValueError("The fitted variance components do not define a finite ICC.")
+
+    rng = np.random.default_rng(random_state)
+    ids = d[subject_col].drop_duplicates().to_numpy()
+    draws: list[float] = []
+    for b in range(int(n_boot)):
+        sampled = rng.choice(ids, size=len(ids), replace=True)
+        parts = []
+        for j, sid in enumerate(sampled):
+            part = d.loc[d[subject_col] == sid].copy()
+            part[subject_col] = f"_boot_{j}"
+            parts.append(part)
+        try:
+            val, _, _, _ = fit_icc(pd.concat(parts, ignore_index=True))
+            if np.isfinite(val):
+                draws.append(val)
+        except Exception:
+            continue
+    if len(draws) < max(30, int(n_boot * 0.5)):
+        raise RuntimeError("Too few valid subject-bootstrap fits; inspect group counts and variance structure.")
+    alpha = 1 - float(confidence)
+    lo, hi = np.quantile(draws, [alpha / 2, 1 - alpha / 2])
+    return {
+        "estimand": "Random-intercept ICC = subject variance / (subject variance + residual variance)",
+        "model": "Gaussian random-intercept mixed model (REML)" if reml else "Gaussian random-intercept mixed model (ML)",
+        "occasion_adjustment": f"Fixed effect: {occasion_col}" if occasion_col else "None",
+        "n_subjects": n_subjects,
+        "n_records": int(len(d)),
+        "subject_variance": subject_var,
+        "residual_variance": residual_var,
+        "icc": float(estimate),
+        "confidence_level": float(confidence),
+        "icc_ci_low": float(lo),
+        "icc_ci_high": float(hi),
+        "bootstrap_valid": int(len(draws)),
+        "bootstrap_requested": int(n_boot),
+        "converged": converged,
+        "caution": "This is a model-based, occasion-adjusted consistency ICC. It assumes independent subjects, a Gaussian random-intercept structure and an adequate variance model. It is not interchangeable with balanced-panel ICC(2)/ICC(3), and it is not heritability.",
+    }

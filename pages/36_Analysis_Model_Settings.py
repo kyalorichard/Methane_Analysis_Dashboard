@@ -9,27 +9,36 @@ render_sidebar_navigation()
 header("Analysis & model settings", "Central configuration for study design, preprocessing, inference, machine learning, clustering, repeatability, forecasting and reproducible reporting.")
 
 principal = st.session_state.get("principal") or {}
+tenant_id = principal.get("tenant_id")
+from platform_core.storage import backend_name
+cloud_backend = backend_name() == "cloud"
+active_project_id = st.session_state.get("active_project_id")
 identity = st.session_state.get("user_id") or principal.get("subject") or st.session_state.get("username") or st.session_state.get("email")
 user_scope = str(identity or "local-user")
 if not identity:
     st.warning("No authenticated user identifier was found. Settings use the shared local-user scope; configure authenticated identity before enabling multi-user use.")
 ca, cb = st.columns(2)
-with ca: project_scope = st.text_input("Project / study scope", value=st.session_state.get("analysis_project_scope") or st.session_state.get("active_project_id") or "default-project", key="analysis_project_input")
+with ca: project_scope = st.text_input("Project / study scope", value=(active_project_id if cloud_backend else (st.session_state.get("analysis_project_scope") or active_project_id or "default-project")), key="analysis_project_input", disabled=cloud_backend)
 with cb: species_scope = st.selectbox("Species scope", ["all", "cattle", "sheep", "goat", "buffalo", "camel", "other"], key="analysis_species_input")
-project_scope = project_scope.strip() or "default-project"
+project_scope = str(active_project_id) if cloud_backend and active_project_id else (project_scope.strip() or "default-project")
+if cloud_backend and not active_project_id:
+    st.warning("Open a saved research project before configuring persistent cloud settings. Cloud settings are stored against the active project and authenticated user.")
 st.session_state["analysis_project_scope"] = project_scope
 st.session_state["analysis_species_scope"] = species_scope
 scope_key = f"{user_scope}|{project_scope}|{species_scope}"
 if st.session_state.get("analysis_settings_scope_key") != scope_key:
-    persisted, persisted_at = load_settings(user_scope, project_scope, species_scope)
+    if cloud_backend and not active_project_id:
+        persisted, persisted_at = None, None
+    else:
+        persisted, persisted_at = load_settings(user_scope, project_scope, species_scope, tenant_id=tenant_id)
     # One-time compatibility migration: earlier releases scoped settings by project name.
-    if persisted is None:
+    if persisted is None and not cloud_backend:
         legacy_scope = st.session_state.get("analysis_project_legacy_scope")
         if legacy_scope and str(legacy_scope) != project_scope:
-            persisted, persisted_at = load_settings(user_scope, str(legacy_scope), species_scope)
+            persisted, persisted_at = load_settings(user_scope, str(legacy_scope), species_scope, tenant_id=tenant_id)
             if persisted is not None:
                 persisted = migrate_settings(persisted)
-                persisted_at = save_settings(user_scope, project_scope, species_scope, persisted)
+                persisted_at = save_settings(user_scope, project_scope, species_scope, persisted, tenant_id=tenant_id)
                 st.session_state["analysis_settings_migrated_from_legacy_scope"] = str(legacy_scope)
     st.session_state.analysis_settings = migrate_settings(persisted or {})
     st.session_state.analysis_settings_scope_key = scope_key
@@ -37,7 +46,7 @@ if st.session_state.get("analysis_settings_scope_key") != scope_key:
 cfg = migrate_settings(st.session_state.get("analysis_settings", {}))
 if st.session_state.get("analysis_settings_saved_at"):
     st.caption(f"Last saved: {st.session_state.analysis_settings_saved_at}")
-st.info("Configuration precedence: global defaults → project/species settings → analysis-level overrides. This page persists project/species settings in SQLite. Analysis modules must explicitly consume a setting to apply it; saved configuration alone does not change an analysis implementation.")
+st.info(f"Configuration precedence: global defaults → project/species settings → analysis-level overrides. Settings are persisted in {'PostgreSQL under the active tenant and project' if cloud_backend else 'the local SQLite metadata database'}. Analysis modules must explicitly consume a setting to apply it; saved configuration alone does not change an analysis implementation.")
 
 with st.form("complete_analysis_settings"):
     tabs = st.tabs(["Study & data", "Preprocessing", "Statistics", "Machine learning", "Clustering", "Repeatability", "Forecasting", "Evaluation", "Reporting"])
@@ -178,7 +187,7 @@ with st.form("complete_analysis_settings"):
         with b: inc_method=st.checkbox("Include methodology",bool(o["include_methodology"])); inc_params=st.checkbox("Include model parameters",bool(o["include_parameters"]))
         with c: inc_diag=st.checkbox("Include diagnostics",bool(o["include_diagnostics"])); inc_dict=st.checkbox("Include data dictionary",bool(o["include_dictionary"]))
         save_versions=st.checkbox("Retain immutable configuration snapshots",bool(o["save_versions"]))
-    submitted=st.form_submit_button("Save all settings",type="primary",use_container_width=True)
+    submitted=st.form_submit_button("Save all settings",type="primary",use_container_width=True,disabled=bool(cloud_backend and not active_project_id))
 
 if submitted:
     cfg["study"]={"name":study_name,"species":species,"design":design,"experimental_unit":unit,"animal_id":animal_id,"group_id":group_id,"date_column":date_col,"round_column":round_col,"methane_targets":[x.strip() for x in methane_targets.split(",") if x.strip()],"phenotype_predictors":[x.strip() for x in predictors.split(",") if x.strip()],"measurement_unit":units,"protocol":protocol,"instrument":instrument,"calibration":calibration,"minimum_duration":int(min_duration)}
@@ -200,8 +209,8 @@ if submitted:
     if errors:
         for msg in errors: st.error(msg)
     else:
-        stamp=save_settings(user_scope,project_scope,species_scope,cfg)
-        snapshot=save_settings_snapshot(user_scope,project_scope,species_scope,cfg) if cfg["reporting"]["save_versions"] else None
+        stamp=save_settings(user_scope,project_scope,species_scope,cfg,tenant_id=tenant_id)
+        snapshot=save_settings_snapshot(user_scope,project_scope,species_scope,cfg,tenant_id=tenant_id) if cfg["reporting"]["save_versions"] else None
         st.session_state.analysis_settings=cfg; st.session_state.analysis_settings_saved_at=stamp
         st.success("All settings saved for the selected user, project and species scope.")
         if snapshot: st.caption(f"Immutable configuration snapshot: {snapshot['snapshot_id']} | SHA-256: {snapshot['fingerprint']}")
@@ -214,21 +223,21 @@ current=st.session_state.get("analysis_settings",cfg)
 a,b=st.columns(2)
 with a: st.download_button("Export settings (JSON)",json.dumps(current,indent=2).encode(),"methane_analysis_settings_v3.json","application/json",use_container_width=True)
 with b:
-    if st.button("Restore defaults",use_container_width=True):
-        fresh=defaults(); save_settings(user_scope,project_scope,species_scope,fresh); st.session_state.analysis_settings=fresh; st.success("Defaults restored and saved."); st.rerun()
+    if st.button("Restore defaults",use_container_width=True,disabled=bool(cloud_backend and not active_project_id)):
+        fresh=defaults(); save_settings(user_scope,project_scope,species_scope,fresh,tenant_id=tenant_id); st.session_state.analysis_settings=fresh; st.success("Defaults restored and saved."); st.rerun()
 upload=st.file_uploader("Import settings JSON",type=["json"],key="settings_v3_import")
-if upload and st.button("Validate and import JSON"):
+if upload and st.button("Validate and import JSON", disabled=bool(cloud_backend and not active_project_id)):
     try:
         incoming=migrate_settings(json.load(upload)); errors,warnings=validate_settings(incoming)
         if errors: raise ValueError(" ".join(errors))
-        stamp=save_settings(user_scope,project_scope,species_scope,incoming); snap=save_settings_snapshot(user_scope,project_scope,species_scope,incoming)
+        stamp=save_settings(user_scope,project_scope,species_scope,incoming,tenant_id=tenant_id); snap=save_settings_snapshot(user_scope,project_scope,species_scope,incoming,tenant_id=tenant_id)
         st.session_state.analysis_settings=incoming; st.session_state.analysis_settings_saved_at=stamp
         st.success(f"Imported and saved. Snapshot {snap['snapshot_id']}.")
         for msg in warnings: st.warning(msg)
         st.rerun()
     except Exception as exc: st.error(f"Import rejected: {exc}")
 with st.expander("Configuration history"):
-    history=list_settings_snapshots(user_scope,project_scope,species_scope,20)
+    history=list_settings_snapshots(user_scope,project_scope,species_scope,20,tenant_id=tenant_id)
     if history: st.dataframe(history,use_container_width=True,hide_index=True)
     else: st.caption("No immutable snapshots have been recorded for this scope yet.")
 st.caption(f"Current configuration fingerprint: {config_fingerprint(current)}")

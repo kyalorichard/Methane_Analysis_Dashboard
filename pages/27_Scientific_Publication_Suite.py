@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from analysis_engine.ui import header, render_sidebar_navigation, empty_state
 from analysis_engine.publication import build_publication_bundle, publication_tables
+from analysis_engine.scientific_reports import build_scientific_report
 from platform_core.auth import require_principal
 
 st.set_page_config(page_title="Publication suite | Methane Phenotype Analytics",page_icon="📚",layout="wide")
@@ -64,4 +65,28 @@ if st.button("Generate publication and reproducibility bundle",type="primary"):
 if "publication_bundle" in st.session_state:
     st.download_button("Download publication bundle (ZIP)",data=st.session_state["publication_bundle"],
         file_name="methane_phenotype_publication_bundle.zip",mime="application/zip")
+
+st.divider()
+st.subheader("Publication-ready report documents")
+st.caption("Generate editable Word and PDF reports with descriptive tables, an outcome-distribution figure, methods, metadata and explicit interpretation limitations. These documents do not invent inferential results or replace investigator review.")
+if st.button("Generate Word, PDF and complete report archive", type="primary", key="generate_scientific_documents"):
+    try:
+        report = build_scientific_report(df, outcome=outcome, animal_id=animal, group_col=group,
+            covariates=covars, study_title=title, dataset_name=dataset_name,
+            species=species, protocol_notes=notes)
+        st.session_state["scientific_report_documents"] = report
+        st.success("Word and PDF reports generated.")
+    except Exception as exc:
+        st.error(f"Scientific report generation failed: {exc}")
+if "scientific_report_documents" in st.session_state:
+    report = st.session_state["scientific_report_documents"]
+    d1, d2, d3 = st.columns(3)
+    d1.download_button("Download editable Word report", data=report["docx"],
+        file_name="methane_scientific_report.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    d2.download_button("Download PDF report", data=report["pdf"],
+        file_name="methane_scientific_report.pdf", mime="application/pdf")
+    d3.download_button("Download complete report archive", data=report["zip"],
+        file_name="methane_scientific_report_complete.zip", mime="application/zip")
+    st.caption(f"Report generated from {report['manifest']['source_rows']:,} source records; dataset fingerprint: {report['manifest']['dataset_fingerprint_sha256'][:16]}…")
 st.info("Before manuscript submission, add protocol-specific calibration, units, sampling design, inclusion criteria, and model diagnostics. The report does not automatically claim inferential significance or causal effects.")

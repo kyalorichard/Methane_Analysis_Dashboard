@@ -1,4 +1,4 @@
-"""Persistent, scoped analysis settings and experiment registry (SQLite)."""
+"""Project-scoped analysis settings with local SQLite and cloud PostgreSQL persistence."""
 from __future__ import annotations
 import json, os, sqlite3, hashlib
 from contextlib import closing
@@ -39,8 +39,43 @@ def _connect():
     return con
 
 
-def save_settings(user_scope, project_scope, species_scope, settings):
+def _cloud_settings_context(user_scope, project_scope, tenant_id):
+    """Resolve and authorize a project settings scope in PostgreSQL."""
+    import uuid
+    if not tenant_id:
+        raise ValueError("Cloud settings require an authenticated tenant. Open a saved research project first.")
+    try:
+        project_uuid = str(uuid.UUID(str(project_scope)))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("Cloud settings must be scoped to a saved project ID, not a free-text project name.") from exc
+    from platform_core.database import tenant_session
+    from platform_core.workspace import _user_id, _assert_project_access
+    # Return resolved identifiers; every operation opens its own tenant-scoped transaction.
+    with tenant_session(tenant_id) as session:
+        uid = _user_id(session, str(user_scope))
+        _assert_project_access(session, tenant_id, project_uuid, uid, write=False)
+    return tenant_id, project_uuid, uid
+
+
+def _cloud_enabled(tenant_id=None):
+    from platform_core.storage import backend_name
+    return backend_name() == "cloud"
+
+
+def save_settings(user_scope, project_scope, species_scope, settings, tenant_id=None):
     stamp = datetime.now(timezone.utc).isoformat()
+    if _cloud_enabled(tenant_id):
+        from sqlalchemy import text
+        from platform_core.database import tenant_session
+        tid, pid, uid = _cloud_settings_context(user_scope, project_scope, tenant_id)
+        with tenant_session(tid) as session:
+            from platform_core.workspace import _assert_project_access
+            _assert_project_access(session, tid, pid, uid, write=True)
+            session.execute(text("""INSERT INTO project_settings(tenant_id,project_id,user_id,species_scope,payload,updated_at)
+              VALUES(CAST(:tenant AS uuid),CAST(:project AS uuid),CAST(:uid AS uuid),:species,CAST(:payload AS jsonb),CAST(:stamp AS timestamptz))
+              ON CONFLICT(tenant_id,project_id,user_id,species_scope) DO UPDATE SET payload=EXCLUDED.payload,updated_at=EXCLUDED.updated_at"""),
+              {"tenant": tid, "project": pid, "uid": uid, "species": str(species_scope), "payload": json.dumps(settings, sort_keys=True, default=str), "stamp": stamp})
+        return stamp
     with closing(_connect()) as con:
         con.execute("INSERT INTO scoped_settings VALUES (?,?,?,?,?) ON CONFLICT(user_scope,project_scope,species_scope) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at",
                     (str(user_scope), str(project_scope), str(species_scope), json.dumps(settings, sort_keys=True), stamp))
@@ -48,7 +83,17 @@ def save_settings(user_scope, project_scope, species_scope, settings):
     return stamp
 
 
-def load_settings(user_scope, project_scope, species_scope):
+def load_settings(user_scope, project_scope, species_scope, tenant_id=None):
+    if _cloud_enabled(tenant_id):
+        from sqlalchemy import text
+        from platform_core.database import tenant_session
+        tid, pid, uid = _cloud_settings_context(user_scope, project_scope, tenant_id)
+        with tenant_session(tid) as session:
+            row = session.execute(text("""SELECT payload,updated_at FROM project_settings
+              WHERE tenant_id=CAST(:tenant AS uuid) AND project_id=CAST(:project AS uuid)
+              AND user_id=CAST(:uid AS uuid) AND species_scope=:species"""),
+              {"tenant": tid, "project": pid, "uid": uid, "species": str(species_scope)}).mappings().first()
+        return (dict(row["payload"]), row["updated_at"].isoformat() if row and row["updated_at"] else None) if row else (None, None)
     with closing(_connect()) as con:
         row = con.execute("SELECT payload, updated_at FROM scoped_settings WHERE user_scope=? AND project_scope=? AND species_scope=?",
                           (str(user_scope), str(project_scope), str(species_scope))).fetchone()
@@ -85,8 +130,17 @@ def get_experiment(experiment_id, user_scope):
     return {"project_scope":row[0],"species_scope":row[1],"experiment_name":row[2],"created_at":row[3],"config":json.loads(row[4]),"metrics":json.loads(row[5]),"paired_comparisons":json.loads(row[6]),"metadata":json.loads(row[7])}
 
 
-def export_project_state(user_scope, project_scope):
+def export_project_state(user_scope, project_scope, tenant_id=None):
     """Export local settings and experiment metadata for one user/project scope."""
+    if _cloud_enabled(tenant_id):
+        from sqlalchemy import text
+        from platform_core.database import tenant_session
+        tid, pid, uid = _cloud_settings_context(user_scope, project_scope, tenant_id)
+        with tenant_session(tid) as session:
+            rows = session.execute(text("""SELECT species_scope,payload,updated_at FROM project_settings
+              WHERE tenant_id=CAST(:tenant AS uuid) AND project_id=CAST(:project AS uuid) AND user_id=CAST(:uid AS uuid)"""),
+              {"tenant": tid, "project": pid, "uid": uid}).mappings().all()
+        return {"settings": [{"species_scope": r["species_scope"], "payload": dict(r["payload"]), "updated_at": r["updated_at"].isoformat()} for r in rows], "experiments": []}
     with closing(_connect()) as con:
         settings = con.execute(
             "SELECT species_scope,payload,updated_at FROM scoped_settings WHERE user_scope=? AND project_scope=?",
@@ -102,9 +156,13 @@ def export_project_state(user_scope, project_scope):
     }
 
 
-def import_project_state(user_scope, project_scope, state):
+def import_project_state(user_scope, project_scope, state, tenant_id=None):
     """Restore portable settings and experiment metadata under the destination scope."""
     stamp = datetime.now(timezone.utc).isoformat()
+    if _cloud_enabled(tenant_id):
+        for item in state.get("settings", []):
+            save_settings(user_scope, project_scope, item.get("species_scope", "all"), item.get("payload", {}), tenant_id=tenant_id)
+        return
     with closing(_connect()) as con:
         for item in state.get("settings", []):
             con.execute(
@@ -116,12 +174,27 @@ def import_project_state(user_scope, project_scope, state):
         con.commit()
 
 
-def save_settings_snapshot(user_scope, project_scope, species_scope, settings):
+def save_settings_snapshot(user_scope, project_scope, species_scope, settings, tenant_id=None):
     """Append an immutable, fingerprinted configuration snapshot for auditability."""
     from analysis_engine.settings_config import config_fingerprint
     stamp = datetime.now(timezone.utc).isoformat()
     fingerprint = config_fingerprint(settings)
     snapshot_id = hashlib.sha256(f"{user_scope}|{project_scope}|{species_scope}|{stamp}|{fingerprint}".encode()).hexdigest()[:20]
+    if _cloud_enabled(tenant_id):
+        from sqlalchemy import text
+        from platform_core.database import tenant_session
+        tid, pid, uid = _cloud_settings_context(user_scope, project_scope, tenant_id)
+        with tenant_session(tid) as session:
+            from platform_core.workspace import _assert_project_access
+            _assert_project_access(session, tid, pid, uid, write=True)
+            session.execute(text("""INSERT INTO project_settings_history
+              (snapshot_id,tenant_id,project_id,user_id,species_scope,created_at,fingerprint,payload)
+              VALUES(:snapshot,CAST(:tenant AS uuid),CAST(:project AS uuid),CAST(:uid AS uuid),:species,
+              CAST(:stamp AS timestamptz),:fingerprint,CAST(:payload AS jsonb))"""),
+              {"snapshot": snapshot_id, "tenant": tid, "project": pid, "uid": uid,
+               "species": str(species_scope), "stamp": stamp, "fingerprint": fingerprint,
+               "payload": json.dumps(settings, sort_keys=True, default=str)})
+        return {"snapshot_id": snapshot_id, "created_at": stamp, "fingerprint": fingerprint}
     with closing(_connect()) as con:
         con.execute("""CREATE TABLE IF NOT EXISTS settings_history (
             snapshot_id TEXT PRIMARY KEY, user_scope TEXT NOT NULL, project_scope TEXT NOT NULL,
@@ -132,7 +205,21 @@ def save_settings_snapshot(user_scope, project_scope, species_scope, settings):
     return {"snapshot_id": snapshot_id, "created_at": stamp, "fingerprint": fingerprint}
 
 
-def list_settings_snapshots(user_scope, project_scope, species_scope=None, limit=20):
+def list_settings_snapshots(user_scope, project_scope, species_scope=None, limit=20, tenant_id=None):
+    if _cloud_enabled(tenant_id):
+        from sqlalchemy import text
+        from platform_core.database import tenant_session
+        tid, pid, uid = _cloud_settings_context(user_scope, project_scope, tenant_id)
+        query = """SELECT snapshot_id,species_scope,created_at,fingerprint FROM project_settings_history
+          WHERE tenant_id=CAST(:tenant AS uuid) AND project_id=CAST(:project AS uuid) AND user_id=CAST(:uid AS uuid)"""
+        params = {"tenant": tid, "project": pid, "uid": uid, "limit": int(limit)}
+        if species_scope is not None:
+            query += " AND species_scope=:species"; params["species"] = str(species_scope)
+        query += " ORDER BY created_at DESC LIMIT :limit"
+        with tenant_session(tid) as session:
+            rows = session.execute(text(query), params).mappings().all()
+        return [{"snapshot_id": r["snapshot_id"], "species_scope": r["species_scope"],
+                 "created_at": r["created_at"].isoformat(), "fingerprint": r["fingerprint"]} for r in rows]
     with closing(_connect()) as con:
         query = "SELECT snapshot_id, species_scope, created_at, fingerprint FROM settings_history WHERE user_scope=? AND project_scope=?"
         params = [str(user_scope), str(project_scope)]
