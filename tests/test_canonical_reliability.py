@@ -33,7 +33,7 @@ def test_panel_builder_is_canonical_and_audits_duplicate_cells():
 
 
 def test_legacy_balanced_icc_wrapper_routes_to_canonical_engine():
-    from analysis_engine.release6 import estimate_repeatability_icc
+    from analysis_engine.research_methods import estimate_repeatability_icc
     rng = np.random.default_rng(4)
     base = rng.normal(size=40)
     panel = pd.DataFrame({f"r{i}": base + rng.normal(scale=.25, size=40) for i in range(3)})
@@ -53,7 +53,7 @@ def test_long_format_icc_legacy_wrapper_routes_to_canonical_engine():
 
 
 def test_bland_altman_compatibility_wrapper_uses_canonical_paired_engine():
-    from analysis_engine.release6 import bland_altman_summary
+    from analysis_engine.research_methods import bland_altman_summary
     rng = np.random.default_rng(2)
     a = rng.normal(10, 1, 50)
     b = a + .4 + rng.normal(0, .2, 50)

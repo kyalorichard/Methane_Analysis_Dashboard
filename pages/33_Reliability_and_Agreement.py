@@ -14,7 +14,7 @@ st.set_page_config(page_title="Reliability and Agreement", page_icon="📏", lay
 from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
 st.title("Reliability, Repeatability & Measurement Agreement")
-st.caption("Release 6.1 · Subject-level reliability, within/between-animal variability and paired-method agreement")
+st.caption("Subject-level reliability, within/between-animal variability and paired-method agreement")
 
 if "data" not in st.session_state:
     st.info("Load a dataset using the platform data-management workflow first.")

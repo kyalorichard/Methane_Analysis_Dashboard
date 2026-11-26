@@ -7,7 +7,7 @@ from analysis_engine.study_harmonisation import audit_protocol_comparability, de
 st.set_page_config(page_title='Multi-study harmonisation | Methane Phenotype Analytics', page_icon='🧬', layout='wide')
 require_principal()
 render_sidebar_navigation()
-header('Multi-study harmonisation & meta-analysis', 'Explicit phenotype mapping, measurement-protocol comparability and random-effects synthesis across independent studies.', badge='RELEASE 6.5')
+header('Multi-study harmonisation & meta-analysis', 'Explicit phenotype mapping, measurement-protocol comparability and random-effects synthesis across independent studies.')
 st.warning('Do not pool raw methane values across species or studies solely because column names match. Confirm phenotype definition, units, instrument, calibration, sampling design and biological estimand first.')
 
 with st.expander('1. Harmonise one study dataset', expanded=True):

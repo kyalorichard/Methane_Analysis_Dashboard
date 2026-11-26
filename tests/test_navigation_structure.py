@@ -32,6 +32,6 @@ def test_every_streamlit_page_has_one_primary_navigation_entry():
 
 
 def test_pages_32_and_33_render_the_shared_navigation():
-    for filename in ("32_Release_6_Research_Integration.py", "33_Reliability_and_Agreement.py"):
+    for filename in ("32_Research_Diagnostics_and_Methods.py", "33_Reliability_and_Agreement.py"):
         source = (ROOT / "pages" / filename).read_text(encoding="utf-8")
         assert "render_sidebar_navigation()" in source

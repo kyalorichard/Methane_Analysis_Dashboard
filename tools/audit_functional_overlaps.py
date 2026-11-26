@@ -17,7 +17,7 @@ OWNERSHIP = {
     },
     "balanced_panel_icc": {
         "canonical": "analysis_engine.reliability.estimate_balanced_panel_icc",
-        "compatibility_adapters": ["analysis_engine.release6.estimate_repeatability_icc"],
+        "compatibility_adapters": ["analysis_engine.research_methods.estimate_repeatability_icc"],
         "status": "centralised; distinct from unbalanced ICC(1,1)",
     },
     "unbalanced_long_format_icc1": {
@@ -28,7 +28,7 @@ OWNERSHIP = {
     },
     "paired_bland_altman": {
         "canonical": "analysis_engine.reliability.bland_altman_paired",
-        "compatibility_adapters": ["analysis_engine.release6.bland_altman_summary"],
+        "compatibility_adapters": ["analysis_engine.research_methods.bland_altman_summary"],
         "status": "centralised",
     },
     "long_format_bland_altman": {

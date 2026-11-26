@@ -6,7 +6,7 @@ from analysis_engine.experiment_registry import load_settings, save_settings, sa
 from analysis_engine.settings_config import defaults, migrate_settings, validate_settings, config_fingerprint
 
 render_sidebar_navigation()
-header("Analysis & model settings", "Central configuration for study design, preprocessing, inference, machine learning, clustering, repeatability, forecasting and reproducible reporting.", badge="RELEASE 6.11")
+header("Analysis & model settings", "Central configuration for study design, preprocessing, inference, machine learning, clustering, repeatability, forecasting and reproducible reporting.")
 
 principal = st.session_state.get("principal") or {}
 identity = st.session_state.get("user_id") or principal.get("subject") or st.session_state.get("username") or st.session_state.get("email")

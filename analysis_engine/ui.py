@@ -676,7 +676,7 @@ def render_sidebar_navigation():
                 ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
                 ("Forecasting & time-series analysis", "pages/37_Time_Series_Forecasting.py", "📉"),
                 ("Multi-study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐"),
-                ("Research integration lab", "pages/32_Release_6_Research_Integration.py", "🧬"),
+                ("Research diagnostics & methods", "pages/32_Research_Diagnostics_and_Methods.py", "🧬"),
                 ("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"),
                 ("Advanced scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
                 ("Advanced nonlinear analysis (legacy)", "pages/11_Advanced_Analysis.py", "🧮"),

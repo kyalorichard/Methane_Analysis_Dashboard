@@ -15,11 +15,11 @@ from analysis_engine.settings_config import load_active_settings
 from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
 from analysis_engine.ml import REGRESSORS
-from analysis_engine.release6 import grouped_learning_curve, feature_selection_stability, external_regression_validation
+from analysis_engine.research_methods import grouped_learning_curve, feature_selection_stability, external_regression_validation
 from analysis_engine.research_hardening import CLASSIFIERS, grouped_classification_benchmark
 
 render_sidebar_navigation()
-header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.", badge="RELEASE 6.8")
+header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.")
 cfg=load_active_settings(st.session_state); comparison_cfg=cfg.get("comparison", {})
 df=get_data(); roles=get_roles(df); nums=numeric_cols(df)
 if len(df)<10:
@@ -262,7 +262,7 @@ if class_target_nested:
 else:
     st.info("No eligible categorical outcome was found for nested classification.")
 
-st.warning("Release 6.3 classification validation: nested group-aware probability calibration and multiclass OOF probability metrics are now available. Remaining limitations include calibration method comparisons (e.g. isotonic), threshold optimisation with prespecified utility, decision-curve analysis, classification-specific SHAP, and independent external classification workflow integration. Calibration is not a substitute for external validation.")
+st.warning("Classification validation: nested group-aware probability calibration and multiclass OOF probability metrics are now available. Remaining limitations include calibration method comparisons (e.g. isotonic), threshold optimisation with prespecified utility, decision-curve analysis, classification-specific SHAP, and independent external classification workflow integration. Calibration is not a substitute for external validation.")
 
 st.divider(); st.subheader("9. Independent external classification validation")
 st.caption("Fit a classifier on the active development cohort, freeze it, and evaluate an independent uploaded cohort without refitting. The external outcome must use the same class labels and definitions.")
@@ -313,4 +313,4 @@ if transport_file is not None:
     except Exception as exc:
         st.error(f"External cohort audit failed: {exc}")
 
-st.info("Release 6.4 also exposes cluster-bootstrap confidence intervals for regression performance and paired cluster-bootstrap comparisons of model predictions through `analysis_engine.transportability`. Supply predictions from the same held-out records and use the highest independent sampling unit. Negative candidate-minus-reference error differences favour the candidate model.")
+st.info("The transportability utilities also provide cluster-bootstrap confidence intervals for regression performance and paired cluster-bootstrap comparisons of model predictions through `analysis_engine.transportability`. Supply predictions from the same held-out records and use the highest independent sampling unit. Negative candidate-minus-reference error differences favour the candidate model.")
