@@ -4,7 +4,11 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from analysis_engine.release6 import estimate_repeatability_icc, within_between_variability, bland_altman_summary
+from analysis_engine.service_registry import get_service
+
+estimate_repeatability_icc = get_service("repeatability_balanced_panel")
+within_between_variability = get_service("within_between_variability")
+bland_altman_summary = lambda a, b, **kw: get_service("bland_altman_paired")(a, b, **kw)[1]
 
 st.set_page_config(page_title="Reliability and Agreement", page_icon="📏", layout="wide")
 st.title("Reliability, Repeatability & Measurement Agreement")
@@ -37,10 +41,7 @@ else:
     conf = st.select_slider("Confidence level", options=[0.90, 0.95, 0.99], value=0.95)
     if st.button("Estimate repeatability and ICC", type="primary"):
         try:
-            d = df[[animal, occasion, outcome]].copy()
-            d[outcome] = pd.to_numeric(d[outcome], errors="coerce")
-            d = d.dropna(subset=[animal, occasion, outcome])
-            panel = d.pivot_table(index=animal, columns=occasion, values=outcome, aggfunc=agg)
+            panel, panel_audit = get_service("build_reliability_panel")(df, animal, occasion, outcome, aggregation=agg)
             complete = panel.dropna(axis=0, how="any")
             if complete.shape[1] < 2:
                 raise ValueError("At least two measurement occasions are needed.")
@@ -50,6 +51,7 @@ else:
             st.session_state["r61_variance_result"] = var
             st.session_state["r61_panel"] = complete
             st.session_state["r61_panel_shape"] = (int(panel.shape[0]), int(panel.shape[1]), int(complete.shape[0]))
+            st.session_state["r61_panel_audit"] = panel_audit
         except Exception as exc:
             st.error(f"{type(exc).__name__}: {exc}")
     if st.session_state.get("r61_icc_result"):
@@ -62,7 +64,8 @@ else:
         c.metric("Complete subjects", f"{r['n_subjects']:,}")
         st.write(f"**{conf:.0%} subject-bootstrap CI for single-measure ICC:** {r['icc_single_ci_low']:.3f} to {r['icc_single_ci_high']:.3f}")
         st.caption(r["interpretation"])
-        st.caption(f"Panel construction: {shape[0]:,} subjects initially; {shape[2]:,} complete subjects across {shape[1]} occasions. Complete-case ICC can change the target population if missingness is informative.")
+        panel_audit = st.session_state.get("r61_panel_audit", {})
+        st.caption(f"Panel construction: {shape[0]:,} subjects initially; {shape[2]:,} complete subjects across {shape[1]} occasions; {panel_audit.get('duplicate_subject_occasion_rows_aggregated', 0):,} duplicate subject–occasion rows aggregated. Complete-case ICC can change the target population if missingness is informative.")
         st.subheader("Within- and between-subject variance")
         st.dataframe(pd.DataFrame([
             {"Component": "Between-subject", "Variance": v["between_subject_variance"], "Fraction": v["between_subject_fraction"]},
@@ -76,17 +79,38 @@ st.divider()
 st.header("2. Bland–Altman agreement between two measurement methods")
 st.markdown("Use paired measurements of the same biological quantity and compatible units. Correlation alone is not evidence of agreement.")
 if len(numeric) >= 2:
-    x1, x2 = st.columns(2)
-    method_a = x1.selectbox("Method / occasion A", numeric, key="ba_a")
-    method_b = x2.selectbox("Method / occasion B", [c for c in numeric if c != method_a], key="ba_b")
-    ba_boot = st.slider("Bland–Altman bootstrap replicates", 200, 3000, 1000, 200, key="ba_boot")
-    if st.button("Calculate agreement"):
+    roles = st.session_state.get("roles", {})
+    default_animal = roles.get("animal_id")
+    x1, x2, x3 = st.columns(3)
+    method_a = x1.selectbox("Measurement A", numeric, key="ba_a")
+    method_b = x2.selectbox("Measurement B", [c for c in numeric if c != method_a], key="ba_b")
+    animal_options = ["—"] + all_cols
+    animal_default_index = all_cols.index(default_animal) + 1 if default_animal in all_cols else 0
+    animal_pair = x3.selectbox("Pairing / animal ID (recommended)", animal_options, index=animal_default_index, key="ba_pair_id")
+    ba_boot = st.slider("Paired-unit bootstrap replicates", 200, 3000, 1000, 200, key="ba_boot")
+    if animal_pair != "—":
+        pair_frame = df[[animal_pair, method_a, method_b]].copy()
+        pair_frame[method_a] = pd.to_numeric(pair_frame[method_a], errors="coerce")
+        pair_frame[method_b] = pd.to_numeric(pair_frame[method_b], errors="coerce")
+        pair_frame = pair_frame.replace([np.inf, -np.inf], np.nan).dropna()
+        pair_frame = pair_frame.groupby(animal_pair, as_index=False)[[method_a, method_b]].median()
+        pair_unit = "animal-level median"
+    else:
+        pair_frame = df[[method_a, method_b]].copy()
+        pair_frame[method_a] = pd.to_numeric(pair_frame[method_a], errors="coerce")
+        pair_frame[method_b] = pd.to_numeric(pair_frame[method_b], errors="coerce")
+        pair_frame = pair_frame.replace([np.inf, -np.inf], np.nan).dropna()
+        pair_unit = "record-level"
+        st.warning("No animal identifier selected. If rows include repeated observations from the same animal, the pair-level bootstrap will understate uncertainty. Select an animal ID or use the long-format agreement workflow.")
+    st.caption(f"Paired analysis unit: {pair_unit} · complete pairs: {len(pair_frame):,}")
+    if st.button("Calculate agreement", key="run_bland_altman"):
         try:
-            result = bland_altman_summary(df[method_a], df[method_b], n_boot=ba_boot)
+            result = bland_altman_summary(pair_frame[method_a], pair_frame[method_b], n_boot=ba_boot)
             st.session_state["r61_ba_result"] = result
-            pair = pd.DataFrame({"mean": (pd.to_numeric(df[method_a], errors="coerce") + pd.to_numeric(df[method_b], errors="coerce"))/2,
-                                 "difference": pd.to_numeric(df[method_a], errors="coerce") - pd.to_numeric(df[method_b], errors="coerce")}).dropna()
+            pair = pd.DataFrame({"mean": (pair_frame[method_a] + pair_frame[method_b]) / 2,
+                                 "difference": pair_frame[method_a] - pair_frame[method_b]})
             st.session_state["r61_ba_plot"] = pair
+            st.session_state["r61_ba_unit"] = pair_unit
         except Exception as exc:
             st.error(f"{type(exc).__name__}: {exc}")
     if st.session_state.get("r61_ba_result"):

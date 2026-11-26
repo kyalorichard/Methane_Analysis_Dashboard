@@ -170,135 +170,25 @@ def create_reproducibility_manifest(df, analysis_name, parameters, dataset_name=
 
 def estimate_repeatability_icc(panel: pd.DataFrame, model: str = "ICC3", n_boot: int = 1000,
                                confidence: float = 0.95, random_state: int = 42) -> dict:
-    """Estimate single- and average-measure ICCs from a balanced subject x occasion panel.
+    """Compatibility wrapper for the canonical balanced-panel ICC engine."""
+    from .reliability import estimate_balanced_panel_icc
+    return estimate_balanced_panel_icc(panel, model=model, n_boot=n_boot,
+                                       confidence=confidence, random_state=random_state)
 
-    ICC1: one-way random effects; ICC2: two-way random, absolute agreement;
-    ICC3: two-way mixed, consistency. Subjects are rows and measurement occasions
-    are columns. Bootstrap confidence intervals resample subjects (rows), not
-    individual measurements. Complete-case input is required by the ANOVA formulas.
-    """
-    if not isinstance(panel, pd.DataFrame):
-        raise TypeError("panel must be a pandas DataFrame with subjects as rows and occasions as columns.")
-    if model not in {"ICC1", "ICC2", "ICC3"}:
-        raise ValueError("model must be ICC1, ICC2 or ICC3.")
-    if n_boot < 200:
-        raise ValueError("Use at least 200 subject-level bootstrap replicates.")
-    if not 0.80 <= float(confidence) <= 0.99:
-        raise ValueError("confidence must be between 0.80 and 0.99.")
-    x = panel.apply(pd.to_numeric, errors="coerce").dropna(axis=0, how="any").to_numpy(float)
-    n, k = x.shape
-    if n < 5 or k < 2:
-        raise ValueError("At least five complete subjects and two measurement occasions are required.")
-    if not np.isfinite(x).all():
-        raise ValueError("Panel contains non-finite values.")
-    if np.var(x) <= 0:
-        raise ValueError("ICC is undefined when the complete panel has zero total variance.")
-
-    def _calculate(a):
-        nn, kk = a.shape
-        grand = a.mean()
-        row_means = a.mean(axis=1)
-        col_means = a.mean(axis=0)
-        ss_rows = kk * np.sum((row_means - grand) ** 2)
-        ss_cols = nn * np.sum((col_means - grand) ** 2)
-        ss_total = np.sum((a - grand) ** 2)
-        ss_error = ss_total - ss_rows - ss_cols
-        ms_rows = ss_rows / (nn - 1)
-        ms_cols = ss_cols / (kk - 1)
-        ms_error = ss_error / ((nn - 1) * (kk - 1))
-        ms_within = (ss_total - ss_rows) / (nn * (kk - 1))
-        if model == "ICC1":
-            den = ms_rows + (kk - 1) * ms_within
-            single = (ms_rows - ms_within) / den if den > 0 else np.nan
-        elif model == "ICC2":
-            den = ms_rows + (kk - 1) * ms_error + kk * (ms_cols - ms_error) / nn
-            single = (ms_rows - ms_error) / den if den > 0 else np.nan
-        else:  # ICC3
-            den = ms_rows + (kk - 1) * ms_error
-            single = (ms_rows - ms_error) / den if den > 0 else np.nan
-        average_den = 1 - single
-        average = (kk * single / (1 + (kk - 1) * single)) if np.isfinite(single) and abs(average_den) > 1e-12 else np.nan
-        return float(single), float(average), float(ms_rows), float(ms_cols), float(ms_error)
-
-    single, average, ms_rows, ms_cols, ms_error = _calculate(x)
-    rng = np.random.default_rng(random_state)
-    draws = []
-    for _ in range(int(n_boot)):
-        idx = rng.integers(0, n, size=n)
-        try:
-            value = _calculate(x[idx])[0]
-            if np.isfinite(value):
-                draws.append(value)
-        except (FloatingPointError, ZeroDivisionError):
-            continue
-    if len(draws) < max(100, int(n_boot * 0.5)):
-        raise ValueError("Too few valid bootstrap replicates; inspect sample size and variance structure.")
-    alpha = 1 - float(confidence)
-    lo, hi = np.quantile(draws, [alpha / 2, 1 - alpha / 2])
-    return {
-        "model": model, "n_subjects": int(n), "n_occasions": int(k),
-        "icc_single": single, "icc_average": average,
-        "ci_level": float(confidence), "icc_single_ci_low": float(lo),
-        "icc_single_ci_high": float(hi), "bootstrap_valid": int(len(draws)),
-        "ms_subjects": ms_rows, "ms_occasions": ms_cols, "ms_error": ms_error,
-        "interpretation": {
-            "ICC1": "One-way random-effects, absolute agreement; occasions are not modelled as a shared crossed factor.",
-            "ICC2": "Two-way random-effects, absolute agreement; intended to generalise to comparable measurement occasions.",
-            "ICC3": "Two-way mixed-effects, consistency; inference is conditional on the specific occasions used."
-        }[model],
-        "caution": "ICC is design- and population-dependent. Bootstrap intervals resample subjects and assume subjects are independent. Repeated measures nested within herd/site may require resampling at the higher independent sampling unit. ICC is not heritability."
-    }
 
 
 def within_between_variability(panel: pd.DataFrame) -> dict:
-    """Method-of-moments within/between subject variance for a balanced panel."""
-    x = panel.apply(pd.to_numeric, errors="coerce").dropna(axis=0, how="any").to_numpy(float)
-    n, k = x.shape
-    if n < 5 or k < 2:
-        raise ValueError("At least five complete subjects and two occasions are required.")
-    grand = x.mean()
-    means = x.mean(axis=1)
-    ms_between = k * np.sum((means - grand) ** 2) / (n - 1)
-    ms_within = np.sum((x - means[:, None]) ** 2) / (n * (k - 1))
-    within_var = float(ms_within)
-    between_var = float(max((ms_between - ms_within) / k, 0.0))
-    total = between_var + within_var
-    return {"n_subjects": int(n), "n_occasions": int(k),
-            "between_subject_variance": between_var, "within_subject_variance": within_var,
-            "total_variance": float(total),
-            "between_subject_fraction": between_var / total if total > 0 else np.nan,
-            "within_subject_fraction": within_var / total if total > 0 else np.nan,
-            "note": "Balanced complete-case one-way random-effects method-of-moments decomposition. Within-subject variance includes occasion effects and residual variation; it is not pure measurement error."}
+    """Compatibility wrapper for the canonical balanced-panel variance decomposition."""
+    from .reliability import within_between_variability as _within_between_variability
+    return _within_between_variability(panel)
+
 
 
 def bland_altman_summary(first, second, n_boot: int = 1000, confidence: float = 0.95,
                          random_state: int = 42) -> dict:
-    """Paired-method agreement summary with subject-pair bootstrap CIs for bias and limits."""
-    a = pd.to_numeric(pd.Series(first), errors="coerce")
-    b = pd.to_numeric(pd.Series(second), errors="coerce")
-    d = pd.DataFrame({"first": a, "second": b}).dropna()
-    if len(d) < 10:
-        raise ValueError("At least ten complete paired observations are recommended for Bland-Altman analysis.")
-    if n_boot < 200:
-        raise ValueError("Use at least 200 bootstrap replicates.")
-    if not 0.80 <= float(confidence) <= 0.99:
-        raise ValueError("confidence must be between 0.80 and 0.99.")
-    diff = (d["first"] - d["second"]).to_numpy(float)
-    bias = float(diff.mean())
-    sd = float(diff.std(ddof=1))
-    lower, upper = bias - 1.96 * sd, bias + 1.96 * sd
-    rng = np.random.default_rng(random_state)
-    draws = np.empty((int(n_boot), 3), dtype=float)
-    for i in range(int(n_boot)):
-        z = rng.choice(diff, size=len(diff), replace=True)
-        m, s = float(z.mean()), float(z.std(ddof=1))
-        draws[i] = (m, m - 1.96 * s, m + 1.96 * s)
-    alpha = 1 - float(confidence)
-    ci = np.quantile(draws, [alpha / 2, 1 - alpha / 2], axis=0)
-    return {"n_pairs": int(len(diff)), "bias_first_minus_second": bias,
-            "sd_of_differences": sd, "lower_limit_of_agreement": float(lower),
-            "upper_limit_of_agreement": float(upper), "ci_level": float(confidence),
-            "bias_ci": [float(ci[0, 0]), float(ci[1, 0])],
-            "lower_loa_ci": [float(ci[0, 1]), float(ci[1, 1])],
-            "upper_loa_ci": [float(ci[0, 2]), float(ci[1, 2])],
-            "note": "Limits of agreement are bias ±1.96 SD of paired differences. Assess proportional bias and heteroscedasticity graphically; bootstrap intervals assume independent pairs."}
+    """Compatibility wrapper for canonical paired Bland–Altman statistics."""
+    from .reliability import bland_altman_paired
+    _, result = bland_altman_paired(first, second, n_boot=n_boot, confidence=confidence,
+                                    random_state=random_state, min_pairs=10)
+    return result
+

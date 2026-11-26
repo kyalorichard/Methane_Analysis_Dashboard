@@ -628,23 +628,71 @@ def progress_step(label, complete, detail=""):
 
 
 def render_sidebar_navigation():
-    """Render compact, consistently grouped navigation on every Streamlit page."""
+    """Render a concise, workflow-led navigation with one canonical entry per capability."""
     apply_style()
     with st.sidebar:
-        st.markdown("<div class='brand-lockup'><div class='brand-mark'>M</div><div><div class='brand-name'>Methane Phenotype<br>Analytics</div><div class='brand-sub'>ICARDA research workspace</div></div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='brand-lockup'><div class='brand-mark'>M</div><div><div class='brand-name'>Methane Phenotype<br>Analytics</div><div class='brand-sub'>Research workspace</div></div></div>", unsafe_allow_html=True)
         groups = [
-            ("01 · WORKSPACE", [("Overview", "app.py", "🏠"), ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"), ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"), ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"), ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪")]),
-            ("02 · DATA & PHENOTYPING", [("Data management & QC", "pages/01_Data_Management.py", "🧹"), ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"), ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"), ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"), ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"), ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬")]),
-            ("03 · PHENOTYPE EVIDENCE", [("Repeatability & reliability", "pages/07_Repeatability_Reliability.py", "🔁"), ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"), ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"), ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"), ("Low / high emitters", "pages/18_Low_High_Emitter_Reports.py", "↕️")]),
-            ("04 · STATISTICS & MACHINE LEARNING", [("Statistical models", "pages/03_Statistical_Models.py", "📐"), ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"), ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"), ("Advanced ML validation & explainability", "pages/34_Advanced_ML_Explainability.py", "💡"), ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"), ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"), ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"), ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"), ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"), ("Advanced analysis", "pages/11_Advanced_Analysis.py", "🧮"), ("Variable importance & explainability", "pages/09_Explainability.py", "🔎")]),
-            ("05 · LONGITUDINAL & MULTI-STUDY", [("Longitudinal analysis", "pages/10_Longitudinal_Analysis.py", "🗓️"), ("Time-series forecasting", "pages/37_Time_Series_Forecasting.py", "📉"), ("Emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"), ("Study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐")]),
-            ("06 · REPORTING & GOVERNANCE", [("Reports & exports", "pages/15_Reports_Exports.py", "📄"), ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"), ("Scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"), ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"), ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾")]),
-            ("07 · PLATFORM SETTINGS", [("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"), ("Reliability & agreement", "pages/33_Reliability_and_Agreement.py", "🔁"), ("Release 6 research integration", "pages/32_Release_6_Research_Integration.py", "🧬")]),
+            ("01 · WORKSPACE", [
+                ("Overview", "app.py", "🏠"),
+                ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"),
+                ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"),
+                ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"),
+                ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪"),
+            ]),
+            ("02 · DATA & PHENOTYPES", [
+                ("Data management & QC", "pages/01_Data_Management.py", "🧹"),
+                ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
+                ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
+                ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
+                ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"),
+                ("Phenotype discovery", "pages/06_Phenotype_Analysis.py", "🔬"),
+            ]),
+            ("03 · PHENOTYPE EVIDENCE", [
+                ("Reliability & agreement", "pages/33_Reliability_and_Agreement.py", "📏"),
+                ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
+                ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
+                ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"),
+                ("Low / high emitter reports", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
+                ("Longitudinal emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"),
+            ]),
+            ("04 · STATISTICS & MODELLING", [
+                ("Statistical models", "pages/03_Statistical_Models.py", "📐"),
+                ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"),
+                ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
+                ("Advanced ML validation & explainability", "pages/34_Advanced_ML_Explainability.py", "💡"),
+                ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"),
+                ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"),
+                ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"),
+                ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
+                ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
+                ("Time-series forecasting", "pages/37_Time_Series_Forecasting.py", "📉"),
+                ("Multi-study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐"),
+            ]),
+            ("05 · REPORTING & REPRODUCIBILITY", [
+                ("Reports & exports", "pages/15_Reports_Exports.py", "📄"),
+                ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
+                ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"),
+                ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
+            ]),
+            ("06 · PLATFORM SETTINGS", [
+                ("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"),
+            ]),
         ]
         for i, (group, links) in enumerate(groups):
             with st.expander(group, expanded=(i == 0)):
                 for label, target, icon in links:
                     st.page_link(target, label=label, icon=icon)
+        with st.expander("ADVANCED / COMPATIBILITY PAGES", expanded=False):
+            st.caption("Supplementary or older workbenches retained for backward compatibility. Prefer the canonical workflow pages above for routine analysis.")
+            for label, target, icon in [
+                ("Scientific analysis workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
+                ("Legacy repeatability trajectories", "pages/07_Repeatability_Reliability.py", "🔁"),
+                ("Release 6 research integration", "pages/32_Release_6_Research_Integration.py", "🧬"),
+                ("Advanced analysis (legacy)", "pages/11_Advanced_Analysis.py", "🧮"),
+                ("Variable importance (legacy)", "pages/09_Explainability.py", "🔎"),
+            ]:
+                st.page_link(target, label=label, icon=icon)
         st.divider()
         st.markdown("<div class='section-kicker'>Active project</div>", unsafe_allow_html=True)
         try:
@@ -660,10 +708,7 @@ def render_sidebar_navigation():
                 selected_project = opts[chosen]
                 previous_project = st.session_state.get("active_project_id")
                 if previous_project and previous_project != selected_project["id"]:
-                    # Never carry an in-memory dataset or analysis result across project boundaries.
-                    for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile",
-                                      "active_dataset_id", "active_dataset_key", "forecast_series", "forecast_results",
-                                      "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+                    for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
                         st.session_state.pop(state_key, None)
                     st.session_state.pop("analysis_settings_scope_key", None)
                     st.session_state.pop("analysis_species_scope", None)
@@ -671,8 +716,10 @@ def render_sidebar_navigation():
                 st.session_state["active_project_species"] = selected_project["species"]
                 st.session_state["analysis_project_scope"] = selected_project["id"]
                 st.session_state["analysis_species_scope"] = selected_project["species"].lower()
-            else: st.caption("No projects available. Create one in Projects & datasets.")
-        except Exception: st.caption("Project selector unavailable; configure access in Projects & datasets.")
+            else:
+                st.caption("No projects available. Create one in Projects & datasets.")
+        except Exception:
+            st.caption("Project selector unavailable; configure access in Projects & datasets.")
         catalogue = st.session_state.get("dataset_catalogue", {})
         if catalogue:
             labels = {f"{item['name']} · {item['species'].title()}": key for key, item in catalogue.items()}
@@ -691,5 +738,7 @@ def render_sidebar_navigation():
                 st.session_state["roles"] = infer_roles(item["data"])
                 st.session_state["active_dataset_key"] = selected_key
                 st.rerun()
-        else: st.info("No active dataset. Open Overview to import data.")
+        else:
+            st.info("No active dataset. Open Overview to import data.")
+
 

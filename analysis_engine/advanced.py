@@ -23,61 +23,31 @@ def bh_adjust(pvalues):
     return out
 
 def repeatability_icc(df, animal_col, value_col, session_col=None, min_repeats=2):
-    """One-way random-effects ICC(1,1) and ICC(1,k), with balanced-design caveat."""
-    d=df[[animal_col,value_col]+([session_col] if session_col else [])].copy()
-    d[value_col]=pd.to_numeric(d[value_col],errors="coerce")
-    d=d.dropna(subset=[animal_col,value_col])
-    counts=d.groupby(animal_col)[value_col].size()
-    eligible=counts[counts>=min_repeats].index
-    d=d[d[animal_col].isin(eligible)]
-    if d[animal_col].nunique()<3: raise ValueError("At least three animals with repeated observations are required.")
-    groups=[g[value_col].to_numpy(float) for _,g in d.groupby(animal_col)]
-    n=len(groups); k=int(round(np.mean([len(g) for g in groups])))
-    grand=d[value_col].mean()
-    ssb=sum(len(g)*(g.mean()-grand)**2 for g in groups)
-    ssw=sum(((g-g.mean())**2).sum() for g in groups)
-    msb=ssb/(n-1); msw=ssw/(len(d)-n)
-    # Unequal replicate counts: use harmonic mean in the ICC(1,1) denominator.
-    nh=n/(sum(1/len(g) for g in groups))
-    icc1=(msb-msw)/(msb+(nh-1)*msw) if (msb+(nh-1)*msw)!=0 else np.nan
-    icck=(msb-msw)/msb if msb!=0 else np.nan
-    return {"n_animals":n,"n_records":len(d),"mean_repeats":float(np.mean([len(g) for g in groups])),
-            "min_repeats":int(min(len(g) for g in groups)),"max_repeats":int(max(len(g) for g in groups)),
-            "MS_between":float(msb),"MS_within":float(msw),"ICC_single":float(icc1),
-            "ICC_average":float(icck),"design_note":"Unequal replicate counts; harmonic-mean approximation. Use a two-way mixed-effects ICC when sessions are fixed and fully crossed."}
+    """Compatibility wrapper for the canonical unbalanced long-format ICC(1,1)."""
+    from .reliability import estimate_long_format_icc1
+    return estimate_long_format_icc1(df, animal_col, value_col, min_repeats=min_repeats)
+
 
 def bootstrap_icc(df, animal_col, value_col, n_boot=500, seed=42):
-    rng=np.random.default_rng(seed)
-    ids=df[animal_col].dropna().unique()
-    if len(ids)<4: raise ValueError("At least four animals are required for animal-level bootstrap.")
-    vals=[]
-    for _ in range(n_boot):
-        sampled=rng.choice(ids,size=len(ids),replace=True)
-        parts=[]
-        for j,a in enumerate(sampled):
-            g=df.loc[df[animal_col]==a].copy()
-            g[animal_col]=f"boot_{j}"
-            parts.append(g)
-        b=pd.concat(parts,ignore_index=True)
-        try: vals.append(repeatability_icc(b,animal_col,value_col)["ICC_single"])
-        except Exception: pass
-    if len(vals)<max(30,n_boot*.5): raise ValueError("Too few valid bootstrap replicates.")
-    return {"estimate":float(np.nanmedian(vals)),"ci_low":float(np.nanquantile(vals,.025)),
-            "ci_high":float(np.nanquantile(vals,.975)),"valid_bootstraps":len(vals),"n_boot":n_boot}
+    """Compatibility wrapper for the canonical subject-cluster ICC bootstrap."""
+    from .reliability import bootstrap_long_format_icc1
+    return bootstrap_long_format_icc1(df, animal_col, value_col, n_boot=n_boot, seed=seed)
+
 
 def bland_altman(df, animal_col, value_col, session_col, session_a, session_b):
-    d=df[[animal_col,session_col,value_col]].copy()
-    d[value_col]=pd.to_numeric(d[value_col],errors="coerce")
-    d=d.dropna().groupby([animal_col,session_col])[value_col].mean().unstack(session_col)
-    if session_a not in d or session_b not in d: raise ValueError("Both selected sessions must be present.")
-    x=d[[session_a,session_b]].dropna()
-    if len(x)<3: raise ValueError("At least three paired animals are required.")
-    mean=(x[session_a]+x[session_b])/2
-    diff=x[session_b]-x[session_a]
-    bias=diff.mean(); sd=diff.std(ddof=1)
-    return pd.DataFrame({"animal_mean":mean,"difference_b_minus_a":diff}), {
-        "n_pairs":len(x),"bias":float(bias),"sd_difference":float(sd),
-        "loa_lower":float(bias-1.96*sd),"loa_upper":float(bias+1.96*sd)}
+    """Compatibility wrapper; pairs subjects before using canonical agreement statistics."""
+    from .reliability import bland_altman_long_format
+    pairs, result = bland_altman_long_format(df, animal_col, value_col, session_col, session_a, session_b)
+    return pairs.rename(columns={"difference_a_minus_b": "difference_b_minus_a"}).assign(
+        difference_b_minus_a=lambda x: -x["difference_b_minus_a"]
+    ), {
+        "n_pairs": result["n_pairs"],
+        "bias": -result["bias_first_minus_second"],
+        "sd_difference": result["sd_of_differences"],
+        "loa_lower": -result["upper_limit_of_agreement"],
+        "loa_upper": -result["lower_limit_of_agreement"],
+    }
+
 
 def group_comparison(df, outcome, group, method="auto"):
     d=df[[outcome,group]].copy()

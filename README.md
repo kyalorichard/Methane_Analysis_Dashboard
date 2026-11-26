@@ -169,3 +169,9 @@ For Docker/cloud hosting, mount `data/local_workspace` (or the configured
 single-instance deployments; use PostgreSQL/S3 for concurrent multi-instance
 production deployments. Back up the SQLite database and project directory
 consistently, preferably while the app is stopped or using SQLite's backup API.
+
+## Professional dashboard and consolidation update
+
+The primary navigation is workflow-led and uses one canonical reliability/agreement workspace. Repeated-measure panel construction, balanced-panel ICCs, unbalanced long-format ICC(1,1), Bland–Altman statistics and within/between-subject variance calculations are maintained in `analysis_engine/reliability.py` and dispatched through `analysis_engine/service_registry.py`. Older function names remain as compatibility adapters. See `docs/REFACTORING_AND_PRODUCTION_READINESS.md` for the ownership map, source-data retention behavior, migration and remaining production gates.
+
+New project uploads retain the original uploaded file separately from the canonical Parquet analysis copy. Both objects are checksummed; the project workspace provides an authorized original-source download. For cloud storage, apply `database/migrations/004_original_source_storage.sql` before deploying the updated code.

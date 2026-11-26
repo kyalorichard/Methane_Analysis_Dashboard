@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+from pathlib import Path
 from datetime import datetime, timezone
 import boto3
 import pandas as pd
@@ -67,29 +68,34 @@ def save_dataset(tenant_id: str, subject: str, project_id: str, filename: str, r
     parquet_digest=hashlib.sha256(parquet_bytes).hexdigest()
     dataset_id=str(uuid.uuid4())
     key=f'tenants/{tenant_id}/projects/{project_id}/datasets/{dataset_id}/data.parquet'
+    source_ext=source_format if source_format in {'csv','parquet','pq','xlsx','xls'} else 'bin'
+    source_key=f'tenants/{tenant_id}/projects/{project_id}/datasets/{dataset_id}/original/source.{source_ext}'
     s3=boto3.client('s3',region_name=os.getenv('AWS_REGION'))
-    s3.put_object(Bucket=bucket,Key=key,Body=parquet_bytes,ContentType='application/vnd.apache.parquet',ServerSideEncryption='aws:kms',Metadata={'sha256':parquet_digest,'source-sha256':source_digest,'species':species,'dataset-id':dataset_id,'source-format':source_format,'storage-format':'parquet'})
+    source_content_type={'csv':'text/csv','parquet':'application/vnd.apache.parquet','pq':'application/vnd.apache.parquet','xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','xls':'application/vnd.ms-excel'}.get(source_ext,'application/octet-stream')
     try:
+        s3.put_object(Bucket=bucket,Key=key,Body=parquet_bytes,ContentType='application/vnd.apache.parquet',ServerSideEncryption='aws:kms',Metadata={'sha256':parquet_digest,'source-sha256':source_digest,'species':species,'dataset-id':dataset_id,'source-format':source_format,'storage-format':'parquet'})
+        s3.put_object(Bucket=bucket,Key=source_key,Body=raw_bytes,ContentType=source_content_type,ServerSideEncryption='aws:kms',Metadata={'sha256':source_digest,'dataset-id':dataset_id,'source-format':source_format,'object-role':'original-source'})
         with tenant_session(tenant_id) as session:
             uid=_user_id(session,subject)
             _assert_project_access(session,tenant_id,project_id,uid,write=True)
             project=session.execute(text('SELECT id FROM projects WHERE id=:pid AND tenant_id=:tid'),{'pid':project_id,'tid':tenant_id}).first()
             if not project: raise PermissionError('Project is not accessible in the active tenant.')
-            session.execute(text("""INSERT INTO datasets(id,tenant_id,project_id,name,species,storage_key,file_format,source_format,sha256,source_sha256,row_count,schema_json,qc_summary,protocol_json,uploaded_by)
-              VALUES (:id,:tid,:pid,:name,:species,:key,'parquet',:source_format,:sha,:source_sha, :rows,CAST(:schema AS jsonb),CAST(:qc AS jsonb),CAST(:protocol AS jsonb),:uid)"""),
-              {'id':dataset_id,'tid':tenant_id,'pid':project_id,'name':filename,'species':species,'key':key,'source_format':source_format,'sha':parquet_digest,'source_sha':source_digest,'rows':len(df),'schema':json.dumps({c:str(t) for c,t in df.dtypes.items()}),'qc':json.dumps(profile),'protocol':json.dumps(protocol or {}),'uid':uid})
+            session.execute(text("""INSERT INTO datasets(id,tenant_id,project_id,name,species,storage_key,source_storage_key,file_format,source_format,sha256,source_sha256,row_count,schema_json,qc_summary,protocol_json,uploaded_by)
+              VALUES (:id,:tid,:pid,:name,:species,:key,:source_key,'parquet',:source_format,:sha,:source_sha, :rows,CAST(:schema AS jsonb),CAST(:qc AS jsonb),CAST(:protocol AS jsonb),:uid)"""),
+              {'id':dataset_id,'tid':tenant_id,'pid':project_id,'name':filename,'species':species,'key':key,'source_key':source_key,'source_format':source_format,'sha':parquet_digest,'source_sha':source_digest,'rows':len(df),'schema':json.dumps({c:str(t) for c,t in df.dtypes.items()}),'qc':json.dumps(profile),'protocol':json.dumps(protocol or {}),'uid':uid})
             session.execute(text("INSERT INTO audit_events(tenant_id,user_id,action,resource_type,resource_id,details) VALUES (:tid,:uid,'dataset.uploaded','dataset',:did,CAST(:details AS jsonb))"),{'tid':tenant_id,'uid':uid,'did':dataset_id,'details':json.dumps({'sha256':parquet_digest,'source_sha256':source_digest,'source_format':source_format,'storage_format':'parquet','row_count':len(df),'species':species})})
     except Exception:
         s3.delete_object(Bucket=bucket,Key=key)
+        s3.delete_object(Bucket=bucket,Key=source_key)
         raise
-    return {'id':dataset_id,'storage_key':key,'sha256':parquet_digest,'source_sha256':source_digest,'source_format':source_format,'storage_format':'parquet','profile':profile}
+    return {'id':dataset_id,'storage_key':key,'source_storage_key':source_key,'sha256':parquet_digest,'source_sha256':source_digest,'source_format':source_format,'storage_format':'parquet','original_source_retained':True,'profile':profile}
 
 
 def list_datasets(tenant_id: str, project_id: str, subject: str):
     with tenant_session(tenant_id) as session:
         uid=_user_id(session,subject)
         _assert_project_access(session,tenant_id,project_id,uid,write=False)
-        rows=session.execute(text('SELECT id::text,name,species,file_format,row_count,created_at,sha256,source_format,protocol_json,qc_summary,schema_json FROM datasets WHERE tenant_id=:tid AND project_id=:pid ORDER BY created_at DESC'),{'tid':tenant_id,'pid':project_id}).mappings().all()
+        rows=session.execute(text('SELECT id::text,name,species,file_format,row_count,created_at,sha256,source_format,source_sha256,source_storage_key,protocol_json,qc_summary,schema_json FROM datasets WHERE tenant_id=:tid AND project_id=:pid ORDER BY created_at DESC'),{'tid':tenant_id,'pid':project_id}).mappings().all()
     return [dict(r) for r in rows]
 
 
@@ -97,17 +103,37 @@ def load_dataset(tenant_id: str, project_id: str, dataset_id: str, subject: str)
     with tenant_session(tenant_id) as session:
         uid=_user_id(session,subject)
         _assert_project_access(session,tenant_id,project_id,uid,write=False)
-        row=session.execute(text('SELECT storage_key,name,species,file_format FROM datasets WHERE tenant_id=:tid AND project_id=:pid AND id=:did'),{'tid':tenant_id,'pid':project_id,'did':dataset_id}).mappings().first()
+        row=session.execute(text('SELECT storage_key,name,species,file_format,sha256 FROM datasets WHERE tenant_id=:tid AND project_id=:pid AND id=:did'),{'tid':tenant_id,'pid':project_id,'did':dataset_id}).mappings().first()
     if not row: raise PermissionError('Dataset is not available in this project.')
     s3=boto3.client('s3',region_name=os.getenv('AWS_REGION'))
     obj=s3.get_object(Bucket=os.environ['S3_BUCKET'],Key=row['storage_key'])
     raw=obj['Body'].read()
+    import hashlib
+    if row.get('sha256') and hashlib.sha256(raw).hexdigest()!=row['sha256']:
+        raise IOError('Stored canonical Parquet checksum validation failed.')
     ext=row['file_format'].lower()
     from io import BytesIO
     if ext in {'parquet','pq'}: df=pd.read_parquet(BytesIO(raw),engine='pyarrow')
     elif ext in {'xlsx','xls'}: df=pd.read_excel(BytesIO(raw))
     else: df=pd.read_csv(BytesIO(raw))  # backward compatibility for pre-migration datasets
     return df,row['name'],row['species']
+
+
+def load_raw_source(tenant_id: str, project_id: str, dataset_id: str, subject: str):
+    """Download original uploaded bytes with tenant/project authorization and SHA-256 verification."""
+    import hashlib
+    with tenant_session(tenant_id) as session:
+        uid=_user_id(session,subject)
+        _assert_project_access(session,tenant_id,project_id,uid,write=False)
+        row=session.execute(text('SELECT name,source_format,source_storage_key,source_sha256 FROM datasets WHERE tenant_id=:tid AND project_id=:pid AND id=:did'),{'tid':tenant_id,'pid':project_id,'did':dataset_id}).mappings().first()
+    if not row or not row.get('source_storage_key'):
+        raise FileNotFoundError('Original source object is unavailable for this dataset version.')
+    s3=boto3.client('s3',region_name=os.getenv('AWS_REGION'))
+    obj=s3.get_object(Bucket=os.environ['S3_BUCKET'],Key=row['source_storage_key'])
+    payload=obj['Body'].read()
+    if hashlib.sha256(payload).hexdigest()!=row['source_sha256']:
+        raise IOError('Original source checksum validation failed.')
+    return payload,row['name'],row['source_format']
 
 
 def get_project(tenant_id: str, project_id: str, subject: str):
@@ -127,8 +153,11 @@ def duplicate_project(tenant_id: str, subject: str, source_project_id: str, new_
         for item in list_datasets(tenant_id,source_project_id,subject):
             df,filename,species=load_dataset(tenant_id,source_project_id,item['id'],subject)
             protocol=item.get('protocol_json') or {}
-            # Preserve the scientific table and protocol; storage receives a new immutable object.
-            raw=dataframe_to_parquet_bytes(df)
+            try:
+                raw,filename,source_format=load_raw_source(tenant_id,source_project_id,item['id'],subject)
+            except FileNotFoundError:
+                raw=dataframe_to_parquet_bytes(df)
+                filename=f"{Path(filename).stem}.parquet"
             save_dataset(tenant_id,subject,new_id,filename,raw,df,species,protocol)
     except Exception:
         # Keep a clearly named partial copy rather than deleting data without a separate audit trail.

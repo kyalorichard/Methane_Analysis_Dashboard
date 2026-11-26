@@ -205,12 +205,24 @@ with data_tab:
 
     st.subheader("Stored datasets")
     if datasets:
-        display = [{"Name": d["name"], "Species": d["species"], "Rows": d["row_count"], "Format": d["file_format"], "Source format": d.get("source_format"), "Created": d["created_at"], "SHA-256": d.get("sha256")} for d in datasets]
+        display = [{"Name": d["name"], "Species": d["species"], "Rows": d["row_count"], "Format": d["file_format"], "Source format": d.get("source_format"), "Original retained": bool(d.get("source_sha256")), "Created": d["created_at"], "Parquet SHA-256": d.get("sha256"), "Source SHA-256": d.get("source_sha256")} for d in datasets]
         st.dataframe(pd.DataFrame(display), use_container_width=True, hide_index=True)
-        with st.expander("Dataset protocol and quality metadata"):
+        with st.expander("Dataset protocol, quality and source-file recovery"):
             for d in datasets:
                 st.markdown(f"**{d['name']}**")
-                st.json({"protocol": d.get("protocol_json") or {}, "quality_control": d.get("qc_summary") or {}, "schema": d.get("schema_json") or {}})
+                st.json({"protocol": d.get("protocol_json") or {}, "quality_control": d.get("qc_summary") or {}, "schema": d.get("schema_json") or {}, "canonical_parquet_sha256": d.get("sha256"), "original_source_sha256": d.get("source_sha256")})
+            source_options = {f"{d['name']} · {d['id'][:8]}": d for d in datasets if d.get("source_sha256")}
+            if source_options:
+                source_label = st.selectbox("Original source file", list(source_options), key="raw_source_download_select")
+                source_item = source_options[source_label]
+                try:
+                    source_bytes, source_name, source_ext = storage.load_raw_source(principal.tenant_id, project_id, source_item["id"], principal.subject)
+                    mime = {"csv":"text/csv", "parquet":"application/vnd.apache.parquet", "pq":"application/vnd.apache.parquet", "xlsx":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xls":"application/vnd.ms-excel"}.get(source_ext, "application/octet-stream")
+                    st.download_button("Download immutable original upload", source_bytes, file_name=source_name, mime=mime, key="download_original_source")
+                except Exception as exc:
+                    st.error(f"Original source file could not be recovered: {exc}")
+            else:
+                st.caption("No original source object is available for the selected legacy datasets. New uploads retain both original bytes and canonical Parquet.")
 
 with lifecycle_tab:
     st.subheader("Project version checkpoints")

@@ -39,7 +39,7 @@ def __getattr__(name: str):
     """Delegate supported storage operations to the selected backend."""
     allowed = {
         "list_projects", "create_project", "save_dataset", "list_datasets",
-        "load_dataset", "get_project", "duplicate_project",
+        "load_dataset", "load_raw_source", "get_project", "duplicate_project",
         "create_project_version", "list_project_versions",
         "save_dataset_configuration", "get_dataset_configuration",
     }

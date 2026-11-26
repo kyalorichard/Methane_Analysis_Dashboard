@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from analysis_engine.io import load_uploaded_data, validate_dataset, infer_roles
 from analysis_engine.metrics import dataset_profile
@@ -141,6 +142,33 @@ with st.expander('Species adapter and protocol readiness'):
     for issue in validate_species_dataset(df,st.session_state.get('species','sheep')): st.warning(issue)
     st.caption('Species-specific phenotype semantics, units, calibration and QC limits must be confirmed by the study team before cross-species comparisons.')
 metric_row([('RECORDS',f"{len(df):,}",'Rows in active dataset'),('VARIABLES',f"{df.shape[1]:,}",'Columns in active dataset'),('UNIQUE ANIMALS',f"{df[animal].nunique():,}" if animal in df else 'Not mapped','Distinct animal identifiers'),('MISSING CELLS',f"{prof['missing_percent']:.2f}%",'Percentage of all cells missing')])
+
+# Executive research dashboard: distinguish records from independent animals.
+n_animals = int(df[animal].nunique()) if animal and animal in df.columns else None
+repeated_animals = int((df.groupby(animal).size() >= 2).sum()) if animal and animal in df.columns else None
+n_rounds = int(df[round_col].nunique()) if round_col and round_col in df.columns else None
+dup_rows = int(df.duplicated().sum())
+numeric_frame = df.select_dtypes(include="number")
+nonfinite = int(np.isinf(numeric_frame.to_numpy(dtype=float, na_value=np.nan)).sum()) if not numeric_frame.empty else 0
+st.subheader("Study structure")
+s1, s2, s3, s4 = st.columns(4)
+s1.metric("Repeated animals", f"{repeated_animals:,}" if repeated_animals is not None else "Not mapped", help="Animals with at least two records; not necessarily complete across all rounds.")
+s2.metric("Measurement rounds", f"{n_rounds:,}" if n_rounds is not None else "Not mapped")
+s3.metric("Exact duplicate rows", f"{dup_rows:,}")
+s4.metric("Non-finite numeric cells", f"{nonfinite:,}")
+q1, q2 = st.columns([1.2, 1])
+with q1:
+    st.markdown("**Recommended next actions**")
+    st.page_link("pages/01_Data_Management.py", label="Review data quality and variable mapping", icon="🧹")
+    st.page_link("pages/16_Species_Protocol_Configuration.py", label="Confirm species and measurement protocol", icon="🐑")
+    st.page_link("pages/33_Reliability_and_Agreement.py", label="Assess repeatability and measurement agreement", icon="📏")
+    st.page_link("pages/34_Advanced_ML_Explainability.py", label="Run animal-grouped predictive validation", icon="🤖")
+with q2:
+    st.markdown("**Interpretation safeguards**")
+    st.caption("• The animal is usually the independent biological unit, not each measurement row.")
+    st.caption("• Repeated measurements must remain grouped during model validation.")
+    st.caption("• Sensor concentration and AUC are not methane mass flux without validated calibration.")
+    st.caption("• QC flags should prompt review; do not silently delete observations.")
 from analysis_engine.research_intelligence import dataset_readiness
 readiness=dataset_readiness(df,roles,st.session_state.get("measurement_protocol",{}))
 st.subheader("Research readiness")

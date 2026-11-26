@@ -41,7 +41,7 @@ def group_profile(df: pd.DataFrame, phenotype: str, group: str) -> pd.DataFrame:
 
 
 def repeated_measure_diagnostics(df: pd.DataFrame, animal_col: str, phenotype: str, session_col: str | None = None, min_pairs: int = 3):
-    from .advanced import repeatability_icc
+    from .reliability import estimate_long_format_icc1
     d = df[[animal_col, phenotype] + ([session_col] if session_col else [])].copy()
     d[phenotype] = pd.to_numeric(d[phenotype], errors='coerce')
     d = d.dropna(subset=[animal_col, phenotype])
@@ -51,7 +51,7 @@ def repeated_measure_diagnostics(df: pd.DataFrame, animal_col: str, phenotype: s
     result = {'n_animals': int(d[animal_col].nunique()), 'n_animals_repeated': int(len(paired_ids)), 'n_records': int(len(d))}
     if len(paired_ids) >= 3:
         try:
-            result.update(repeatability_icc(d, animal_col, phenotype))
+            result.update(estimate_long_format_icc1(d, animal_col, phenotype))
         except Exception as exc:
             result['icc_error'] = str(exc)
     else:

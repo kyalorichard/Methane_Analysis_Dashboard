@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
 from analysis_engine.settings_config import load_active_settings
+from analysis_engine.service_registry import get_service
 
 render_sidebar_navigation()
 _cfg = load_active_settings(st.session_state)
@@ -49,23 +50,14 @@ if not out:
 # 2. PREPARE DATA
 # ---------------------------------------------------------
 
-d = df[[animal, roundc, out]].copy()
-
-d[out] = pd.to_numeric(d[out], errors='coerce')
-
-d = d.dropna(subset=[animal, roundc, out])
-
-if d.empty:
-    st.warning('No valid repeated-measurement observations available.')
+try:
+    # Shared panel construction prevents different duplicate-cell handling across pages.
+    p, panel_audit = get_service("build_reliability_panel")(
+        df, animal, roundc, out, aggregation="median"
+    )
+except Exception as exc:
+    st.warning(f'Unable to construct repeated-measurement panel: {exc}')
     st.stop()
-
-# One median phenotype value per animal and round
-p = d.pivot_table(
-    index=animal,
-    columns=roundc,
-    values=out,
-    aggfunc='median'
-)
 
 # ---------------------------------------------------------
 # 3. SUMMARY METRICS
@@ -78,6 +70,8 @@ animals_with_repeats = int(
 complete_animals = int(
     p.dropna().shape[0]
 )
+
+st.caption(f"Duplicate subject-round rows aggregated: {panel_audit['duplicate_subject_occasion_rows_aggregated']:,}.")
 
 metric_row([
     (
@@ -182,97 +176,5 @@ if p.shape[1] >= 2:
             'Insufficient repeated observations for trajectory plotting.'
         )
 
-    # -----------------------------------------------------
-    # 5. EXPLORATORY ICC(1,1)
-    # -----------------------------------------------------
-
-    st.subheader('Repeatability estimation')
-
-    # Balanced complete-case observations
-    q = p.dropna().astype(float)
-
-    n = q.shape[0]
-    k = q.shape[1]
-
-    if n >= 3 and k >= 2:
-
-        values = q.to_numpy(dtype=float)
-
-        grand_mean = values.mean()
-
-        animal_means = values.mean(axis=1)
-
-        ms_between = (
-            k * np.sum((animal_means - grand_mean) ** 2)
-            / (n - 1)
-        )
-
-        ms_within = (
-            np.sum(
-                (values - animal_means[:, None]) ** 2
-            )
-            / (n * (k - 1))
-        )
-
-        denominator = (
-            ms_between + (k - 1) * ms_within
-        )
-
-        if denominator > 0:
-
-            icc = (
-                ms_between - ms_within
-            ) / denominator
-
-        else:
-            icc = np.nan
-
-        if np.isfinite(icc):
-
-            st.metric(
-                'Exploratory ICC(1,1)',
-                f'{icc:.3f}'
-            )
-
-            st.caption(
-                f'Balanced complete-case one-way random-effects '
-                f'ICC(1,1): n={n:,} animals and k={k} rounds.'
-            )
-
-        else:
-            st.info(
-                'ICC is not estimable because the variance '
-                'components produce a zero denominator.'
-            )
-
-        st.info(
-            'This is an exploratory one-way random-effects ICC. '
-            'For formal scientific reporting, select an ICC model '
-            'appropriate to the measurement design and calculate '
-            'confidence intervals.'
-        )
-
-    else:
-
-        st.info(
-            'At least three animals with complete observations '
-            'across two or more rounds are required for this '
-            'exploratory ICC calculation.'
-        )
-
-else:
-
-    st.info(
-        'At least two measurement rounds are required '
-        'to assess repeatability.'
-    )
-
-# ---------------------------------------------------------
-# 6. SCIENTIFIC INTERPRETATION
-# ---------------------------------------------------------
-
-st.warning(
-    'Repeatability is not heritability. This descriptive ICC '
-    'does not independently account for session, assessor, '
-    'environmental, physiological or other systematic effects.'
-)
+    st.info("Formal repeatability estimation is centralised in the Reliability & Agreement workspace. This page is retained for within-animal trajectory visualisation only.")
+    st.page_link("pages/33_Reliability_and_Agreement.py", label="Open canonical reliability and agreement analysis", icon="📏")

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS datasets (
 );
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_format TEXT;
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_sha256 TEXT;
+ALTER TABLE datasets ADD COLUMN IF NOT EXISTS source_storage_key TEXT;
 
 CREATE TABLE IF NOT EXISTS analysis_runs (
  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id UUID NOT NULL, project_id UUID NOT NULL,
