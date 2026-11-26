@@ -71,20 +71,51 @@ if cov_candidates:
     cov_default = 'weight' if 'weight' in cov_candidates else cov_candidates[0]
     cov = st.selectbox('Continuous covariate', cov_candidates, index=cov_candidates.index(cov_default))
     aggregate = st.checkbox('Aggregate to one median value per animal before correlation', value=True)
+    # Bind cached results to the exact controls used to calculate them. Streamlit
+    # reruns the page when a selectbox/checkbox changes, so unkeyed cached results
+    # can otherwise be plotted against a different pair of column names.
+    association_signature = (phenotype, cov, animal_col if aggregate else None, bool(aggregate))
     if st.button('Estimate association'):
         try:
             res, points = correlate_with_covariate(df, phenotype, cov, animal_col if aggregate else None)
             st.session_state['phenotype_validation_association'] = res
             st.session_state['phenotype_validation_points'] = points
-        except Exception as exc: st.error(str(exc))
+            st.session_state['phenotype_validation_association_signature'] = association_signature
+        except Exception as exc:
+            st.session_state.pop('phenotype_validation_association', None)
+            st.session_state.pop('phenotype_validation_points', None)
+            st.session_state.pop('phenotype_validation_association_signature', None)
+            st.error(str(exc))
+
     assoc = st.session_state.get('phenotype_validation_association')
-    if assoc:
-        st.json(assoc)
-        points = st.session_state.get('phenotype_validation_points')
-        fig2 = px.scatter(points, x=cov, y=phenotype, trendline='ols', title=f'{phenotype} vs {cov} (analysis units: {assoc["n_units"]})')
-        fig2.update_layout(template='plotly_white', height=360)
-        st.plotly_chart(fig2, use_container_width=True)
-        st.caption('Correlation is descriptive. Animal-level aggregation reduces pseudoreplication but does not adjust for breed, sex, round, diet, age or other confounding.')
+    saved_signature = st.session_state.get('phenotype_validation_association_signature')
+    points = st.session_state.get('phenotype_validation_points')
+    if assoc and saved_signature == association_signature and isinstance(points, pd.DataFrame):
+        # Validate the cached frame before handing it to Plotly. This also gives a
+        # useful diagnostic if an older session contains an incomplete result.
+        missing_plot_cols = [c for c in (cov, phenotype) if c not in points.columns]
+        if missing_plot_cols:
+            st.warning('The stored association result does not contain the currently selected columns. Recalculate the association.')
+        else:
+            plot_points = points[[cov, phenotype]].copy()
+            for column in (cov, phenotype):
+                plot_points[column] = pd.to_numeric(plot_points[column], errors='coerce')
+            plot_points = plot_points.replace([np.inf, -np.inf], np.nan).dropna(subset=[cov, phenotype])
+            if len(plot_points) < 2:
+                st.warning('At least two complete points are required to draw the association plot.')
+            else:
+                has_variation = plot_points[cov].nunique() > 1 and plot_points[phenotype].nunique() > 1
+                fig2 = px.scatter(
+                    plot_points, x=cov, y=phenotype,
+                    trendline='ols' if has_variation else None,
+                    title=f'{phenotype} vs {cov} (analysis units: {assoc["n_units"]})',
+                )
+                fig2.update_layout(template='plotly_white', height=360)
+                st.plotly_chart(fig2, use_container_width=True)
+            st.json(assoc)
+            st.caption('Correlation is descriptive. Animal-level aggregation reduces pseudoreplication but does not adjust for breed, sex, round, diet, age or other confounding.')
+    elif assoc:
+        st.info('The phenotype, covariate or aggregation setting has changed. Select “Estimate association” to calculate results for the current settings.')
 
 st.subheader('5. Candidate phenotype evidence checklist')
 items = [
