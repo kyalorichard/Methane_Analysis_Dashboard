@@ -175,3 +175,7 @@ consistently, preferably while the app is stopped or using SQLite's backup API.
 The primary navigation is workflow-led and uses one canonical reliability/agreement workspace. Repeated-measure panel construction, balanced-panel ICCs, unbalanced long-format ICC(1,1), Bland–Altman statistics and within/between-subject variance calculations are maintained in `analysis_engine/reliability.py` and dispatched through `analysis_engine/service_registry.py`. Older function names remain as compatibility adapters. See `docs/REFACTORING_AND_PRODUCTION_READINESS.md` for the ownership map, source-data retention behavior, migration and remaining production gates.
 
 New project uploads retain the original uploaded file separately from the canonical Parquet analysis copy. Both objects are checksummed; the project workspace provides an authorized original-source download. For cloud storage, apply `database/migrations/004_original_source_storage.sql` before deploying the updated code.
+
+## Research workflow navigation (2026-11-26)
+
+The primary dashboard navigation now follows the eight-stage research workflow: Research workspace; Data preparation; Phenotype discovery; Statistical inference; Machine learning; Longitudinal and emitter analysis; Advanced research; and Scientific reporting. Each Streamlit page is linked once in the primary navigation, and the landing page provides matching quick links. See `docs/RESEARCH_WORKFLOW_NAVIGATION.md` for the page-to-stage ownership map and navigation validation rules.

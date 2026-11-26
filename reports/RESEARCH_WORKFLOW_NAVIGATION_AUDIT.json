@@ -1,0 +1,203 @@
+{
+  "version": "2026.11.26-professional-refactor-workflow-nav",
+  "navigation_sections": [
+    {
+      "section": "01 \u00b7 RESEARCH WORKSPACE",
+      "pages": [
+        {
+          "label": "Research overview",
+          "target": "app.py"
+        },
+        {
+          "label": "Projects & datasets",
+          "target": "pages/00_Project_Workspace.py"
+        },
+        {
+          "label": "Research overview & readiness",
+          "target": "pages/28_Research_Intelligence.py"
+        },
+        {
+          "label": "Guided research workflow",
+          "target": "pages/22_Guided_Research_Workflow.py"
+        },
+        {
+          "label": "Integrated analysis centre",
+          "target": "pages/23_Integrated_Analysis_Centre.py"
+        },
+        {
+          "label": "Analysis history",
+          "target": "pages/26_Analysis_Run_History.py"
+        }
+      ]
+    },
+    {
+      "section": "02 \u00b7 DATA PREPARATION",
+      "pages": [
+        {
+          "label": "Import, variable mapping & QC",
+          "target": "pages/01_Data_Management.py"
+        },
+        {
+          "label": "Data preparation studio",
+          "target": "pages/24_Data_Preparation_Studio.py"
+        },
+        {
+          "label": "Species & measurement protocol",
+          "target": "pages/16_Species_Protocol_Configuration.py"
+        },
+        {
+          "label": "Phenotype construction",
+          "target": "pages/19_Custom_Phenotype_Builder.py"
+        }
+      ]
+    },
+    {
+      "section": "03 \u00b7 PHENOTYPE DISCOVERY",
+      "pages": [
+        {
+          "label": "Descriptive analysis & distributions",
+          "target": "pages/02_Descriptive_Analysis.py"
+        },
+        {
+          "label": "Phenotype analysis",
+          "target": "pages/06_Phenotype_Analysis.py"
+        },
+        {
+          "label": "Group comparisons",
+          "target": "pages/08_Group_Comparisons.py"
+        },
+        {
+          "label": "PCA & phenotype clustering",
+          "target": "pages/05_Clustering_PCA.py"
+        }
+      ]
+    },
+    {
+      "section": "04 \u00b7 STATISTICAL INFERENCE",
+      "pages": [
+        {
+          "label": "Statistical models & mixed effects",
+          "target": "pages/03_Statistical_Models.py"
+        },
+        {
+          "label": "Reliability, repeatability & agreement",
+          "target": "pages/33_Reliability_and_Agreement.py"
+        },
+        {
+          "label": "Phenotype validation",
+          "target": "pages/21_Phenotype_Validation.py"
+        },
+        {
+          "label": "Allometry & nonlinear inference",
+          "target": "pages/31_Advanced_Inference.py"
+        },
+        {
+          "label": "Equivalence analysis",
+          "target": "pages/13_Equivalence_Analysis.py"
+        }
+      ]
+    },
+    {
+      "section": "05 \u00b7 MACHINE LEARNING",
+      "pages": [
+        {
+          "label": "Model benchmarking & nested validation",
+          "target": "pages/04_ML_Benchmarking.py"
+        },
+        {
+          "label": "Research model lab",
+          "target": "pages/25_Research_Model_Lab.py"
+        },
+        {
+          "label": "Explainability & external validation",
+          "target": "pages/34_Advanced_ML_Explainability.py"
+        },
+        {
+          "label": "Variable importance",
+          "target": "pages/09_Explainability.py"
+        }
+      ]
+    },
+    {
+      "section": "06 \u00b7 LONGITUDINAL & EMITTER ANALYSIS",
+      "pages": [
+        {
+          "label": "Animal trajectories & repeated rounds",
+          "target": "pages/10_Longitudinal_Analysis.py"
+        },
+        {
+          "label": "Emitter cohort classification",
+          "target": "pages/18_Low_High_Emitter_Reports.py"
+        },
+        {
+          "label": "Emitter persistence & transitions",
+          "target": "pages/20_Longitudinal_Emitter_Tracking.py"
+        }
+      ]
+    },
+    {
+      "section": "07 \u00b7 ADVANCED RESEARCH",
+      "pages": [
+        {
+          "label": "Advanced research analytics",
+          "target": "pages/30_Advanced_Research_Analytics.py"
+        },
+        {
+          "label": "Sensitivity & robustness",
+          "target": "pages/12_Sensitivity_Robustness.py"
+        },
+        {
+          "label": "Forecasting & time-series analysis",
+          "target": "pages/37_Time_Series_Forecasting.py"
+        },
+        {
+          "label": "Multi-study harmonisation & meta-analysis",
+          "target": "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py"
+        },
+        {
+          "label": "Research integration lab",
+          "target": "pages/32_Release_6_Research_Integration.py"
+        },
+        {
+          "label": "Analysis & model settings",
+          "target": "pages/36_Analysis_Model_Settings.py"
+        },
+        {
+          "label": "Advanced scientific workbench",
+          "target": "pages/17_Scientific_Analysis_Workbench.py"
+        },
+        {
+          "label": "Advanced nonlinear analysis (legacy)",
+          "target": "pages/11_Advanced_Analysis.py"
+        },
+        {
+          "label": "Repeatability trajectory view (legacy)",
+          "target": "pages/07_Repeatability_Reliability.py"
+        }
+      ]
+    },
+    {
+      "section": "08 \u00b7 SCIENTIFIC REPORTING",
+      "pages": [
+        {
+          "label": "Scientific publication suite",
+          "target": "pages/27_Scientific_Publication_Suite.py"
+        },
+        {
+          "label": "Reports, tables & exports",
+          "target": "pages/15_Reports_Exports.py"
+        },
+        {
+          "label": "Phenotype evidence scorecard",
+          "target": "pages/14_Phenotype_Scorecard.py"
+        },
+        {
+          "label": "Compare analysis runs",
+          "target": "pages/29_Analysis_Comparison.py"
+        }
+      ]
+    }
+  ],
+  "page_count": 39,
+  "unique_target_count": 39
+}

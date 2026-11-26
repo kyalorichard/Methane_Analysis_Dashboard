@@ -52,3 +52,7 @@ The review environment did not have `pyarrow` or Streamlit installed. The Parque
 ## Important limitations
 
 This release is a materially improved research dashboard and codebase, not a fully certified institutional production platform. The original study notebook/protocol is still required for scientific equivalence verification. The Celery worker and FastAPI analysis-run workflow remain scaffolds and need completion and integration testing. Apply database migration and verify cloud IAM/KMS/S3 behavior before production deployment.
+
+## Updated research workflow navigation
+
+The dashboard now adopts the eight-stage navigation model. The full page-to-section mapping and navigation ownership rules are documented in `docs/RESEARCH_WORKFLOW_NAVIGATION.md`. The landing page mirrors the same eight sections for first-time users. All existing pages remain available, each in one primary navigation location.

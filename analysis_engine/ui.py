@@ -628,71 +628,72 @@ def progress_step(label, complete, detail=""):
 
 
 def render_sidebar_navigation():
-    """Render a concise, workflow-led navigation with one canonical entry per capability."""
+    """Render the eight-stage research workflow as the primary navigation."""
     apply_style()
     with st.sidebar:
         st.markdown("<div class='brand-lockup'><div class='brand-mark'>M</div><div><div class='brand-name'>Methane Phenotype<br>Analytics</div><div class='brand-sub'>Research workspace</div></div></div>", unsafe_allow_html=True)
         groups = [
-            ("01 · WORKSPACE", [
-                ("Overview", "app.py", "🏠"),
-                ("Research command centre", "pages/28_Research_Intelligence.py", "🧭"),
-                ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"),
+            ("01 · RESEARCH WORKSPACE", [
+                ("Research overview", "app.py", "🏠"),
                 ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"),
+                ("Research overview & readiness", "pages/28_Research_Intelligence.py", "🧭"),
+                ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"),
                 ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪"),
+                ("Analysis history", "pages/26_Analysis_Run_History.py", "🕘"),
             ]),
-            ("02 · DATA & PHENOTYPES", [
-                ("Data management & QC", "pages/01_Data_Management.py", "🧹"),
+            ("02 · DATA PREPARATION", [
+                ("Import, variable mapping & QC", "pages/01_Data_Management.py", "🧹"),
                 ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
                 ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
-                ("Phenotype builder", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
-                ("Descriptive analysis", "pages/02_Descriptive_Analysis.py", "📊"),
-                ("Phenotype discovery", "pages/06_Phenotype_Analysis.py", "🔬"),
+                ("Phenotype construction", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
             ]),
-            ("03 · PHENOTYPE EVIDENCE", [
-                ("Reliability & agreement", "pages/33_Reliability_and_Agreement.py", "📏"),
-                ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
-                ("Phenotype scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
+            ("03 · PHENOTYPE DISCOVERY", [
+                ("Descriptive analysis & distributions", "pages/02_Descriptive_Analysis.py", "📊"),
+                ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬"),
                 ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"),
-                ("Low / high emitter reports", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
-                ("Longitudinal emitter tracking", "pages/20_Longitudinal_Emitter_Tracking.py", "📈"),
+                ("PCA & phenotype clustering", "pages/05_Clustering_PCA.py", "🧩"),
             ]),
-            ("04 · STATISTICS & MODELLING", [
-                ("Statistical models", "pages/03_Statistical_Models.py", "📐"),
-                ("ML benchmarking", "pages/04_ML_Benchmarking.py", "🤖"),
-                ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
-                ("Advanced ML validation & explainability", "pages/34_Advanced_ML_Explainability.py", "💡"),
-                ("Clustering & PCA", "pages/05_Clustering_PCA.py", "🧩"),
-                ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"),
-                ("Advanced inference & scaling", "pages/31_Advanced_Inference.py", "📐"),
-                ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
+            ("04 · STATISTICAL INFERENCE", [
+                ("Statistical models & mixed effects", "pages/03_Statistical_Models.py", "📐"),
+                ("Reliability, repeatability & agreement", "pages/33_Reliability_and_Agreement.py", "📏"),
+                ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
+                ("Allometry & nonlinear inference", "pages/31_Advanced_Inference.py", "📈"),
                 ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
-                ("Time-series forecasting", "pages/37_Time_Series_Forecasting.py", "📉"),
+            ]),
+            ("05 · MACHINE LEARNING", [
+                ("Model benchmarking & nested validation", "pages/04_ML_Benchmarking.py", "🤖"),
+                ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
+                ("Explainability & external validation", "pages/34_Advanced_ML_Explainability.py", "💡"),
+                ("Variable importance", "pages/09_Explainability.py", "🔎"),
+            ]),
+            ("06 · LONGITUDINAL & EMITTER ANALYSIS", [
+                ("Animal trajectories & repeated rounds", "pages/10_Longitudinal_Analysis.py", "📉"),
+                ("Emitter cohort classification", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
+                ("Emitter persistence & transitions", "pages/20_Longitudinal_Emitter_Tracking.py", "🔁"),
+            ]),
+            ("07 · ADVANCED RESEARCH", [
+                ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"),
+                ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
+                ("Forecasting & time-series analysis", "pages/37_Time_Series_Forecasting.py", "📉"),
                 ("Multi-study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐"),
-            ]),
-            ("05 · REPORTING & REPRODUCIBILITY", [
-                ("Reports & exports", "pages/15_Reports_Exports.py", "📄"),
-                ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
-                ("Analysis run history", "pages/26_Analysis_Run_History.py", "🕘"),
-                ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
-            ]),
-            ("06 · PLATFORM SETTINGS", [
+                ("Research integration lab", "pages/32_Release_6_Research_Integration.py", "🧬"),
                 ("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"),
+                ("Advanced scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
+                ("Advanced nonlinear analysis (legacy)", "pages/11_Advanced_Analysis.py", "🧮"),
+                ("Repeatability trajectory view (legacy)", "pages/07_Repeatability_Reliability.py", "🔁"),
+            ]),
+            ("08 · SCIENTIFIC REPORTING", [
+                ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
+                ("Reports, tables & exports", "pages/15_Reports_Exports.py", "📄"),
+                ("Phenotype evidence scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
+                ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
             ]),
         ]
         for i, (group, links) in enumerate(groups):
             with st.expander(group, expanded=(i == 0)):
                 for label, target, icon in links:
                     st.page_link(target, label=label, icon=icon)
-        with st.expander("ADVANCED / COMPATIBILITY PAGES", expanded=False):
-            st.caption("Supplementary or older workbenches retained for backward compatibility. Prefer the canonical workflow pages above for routine analysis.")
-            for label, target, icon in [
-                ("Scientific analysis workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
-                ("Legacy repeatability trajectories", "pages/07_Repeatability_Reliability.py", "🔁"),
-                ("Release 6 research integration", "pages/32_Release_6_Research_Integration.py", "🧬"),
-                ("Advanced analysis (legacy)", "pages/11_Advanced_Analysis.py", "🧮"),
-                ("Variable importance (legacy)", "pages/09_Explainability.py", "🔎"),
-            ]:
-                st.page_link(target, label=label, icon=icon)
+
         st.divider()
         st.markdown("<div class='section-kicker'>Active project</div>", unsafe_allow_html=True)
         try:

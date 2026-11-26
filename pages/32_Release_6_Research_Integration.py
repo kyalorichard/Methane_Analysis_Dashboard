@@ -5,6 +5,8 @@ from analysis_engine.release6 import (dataset_validation_report, fit_random_slop
     consensus_clustering, create_reproducibility_manifest)
 
 st.set_page_config(page_title='Release 6 Research Integration', page_icon='🧬', layout='wide')
+from analysis_engine.ui import render_sidebar_navigation
+render_sidebar_navigation()
 st.title('Release 6 · Research Integration')
 st.caption('Integrated validation, random-slope longitudinal modelling, consensus clustering and provenance tools.')
 if 'data' not in st.session_state:

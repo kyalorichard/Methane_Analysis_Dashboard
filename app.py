@@ -127,9 +127,27 @@ if 'data' not in st.session_state:
     with b: st.markdown("<div class='workflow-card'><div class='step'>02 · PHENOTYPE EVIDENCE</div><h3>Evaluate candidate traits</h3><p>Assess distributions, missingness, repeatability, duration sensitivity, biological associations and robustness.</p></div>",unsafe_allow_html=True)
     with c: st.markdown("<div class='workflow-card'><div class='step'>03 · MODELLING & REPORTING</div><h3>Build reproducible evidence</h3><p>Compare conventional and animal-grouped ML approaches, validate findings and export research outputs.</p></div>",unsafe_allow_html=True)
     st.markdown("### Research workflow")
+    st.caption("Navigate the platform in the same sequence used to develop, validate and report a methane phenotype study.")
+    workflow = [
+        ("01 · Research workspace", "Projects, datasets, study readiness and analysis history.", "pages/00_Project_Workspace.py", "🗂️"),
+        ("02 · Data preparation", "Import, quality control, protocol configuration and phenotype construction.", "pages/24_Data_Preparation_Studio.py", "🧹"),
+        ("03 · Phenotype discovery", "Distributions, descriptive evidence, group comparisons and PCA.", "pages/02_Descriptive_Analysis.py", "🔬"),
+        ("04 · Statistical inference", "Mixed models, reliability, allometry and equivalence testing.", "pages/33_Reliability_and_Agreement.py", "📐"),
+        ("05 · Machine learning", "Benchmarking, animal-grouped validation and explainability.", "pages/04_ML_Benchmarking.py", "🤖"),
+        ("06 · Longitudinal & emitter analysis", "Animal trajectories, emitter persistence and transitions.", "pages/20_Longitudinal_Emitter_Tracking.py", "🔁"),
+        ("07 · Advanced research", "Robustness, forecasting, harmonisation and specialist methods.", "pages/30_Advanced_Research_Analytics.py", "🧪"),
+        ("08 · Scientific reporting", "Publication outputs, reproducibility manifests and exports.", "pages/27_Scientific_Publication_Suite.py", "📚"),
+    ]
+    for start in range(0, len(workflow), 2):
+        left, right = st.columns(2)
+        for col, item in zip((left, right), workflow[start:start+2]):
+            title, description, target, icon = item
+            with col:
+                with st.container(border=True):
+                    st.markdown(f"**{icon} {title}**")
+                    st.caption(description)
+                    st.page_link(target, label="Open section", use_container_width=True)
     st.page_link("pages/28_Research_Intelligence.py",label="Open research command centre",icon="🧭",use_container_width=True)
-    st.page_link("pages/22_Guided_Research_Workflow.py",label="Open guided research workflow",icon="🗺️",use_container_width=True)
-    st.page_link("pages/23_Integrated_Analysis_Centre.py",label="Run integrated analysis",icon="🧪",use_container_width=True)
     st.markdown("<div class='panel'><b>Scientific guardrails</b><p class='muted'>Keep repeated observations from the same animal together during model validation. Sensor concentration and AUC are not methane mass flux (e.g. g/day) without validated calibration. Flagged observations require review; automated QC must not silently remove records.</p></div>",unsafe_allow_html=True)
     st.stop()
 
