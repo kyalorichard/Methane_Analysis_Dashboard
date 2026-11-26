@@ -50,13 +50,23 @@ def fit_random_intercept_model(df: pd.DataFrame, outcome: str, predictors: list[
     d = df[cols].copy()
     d[outcome] = _numeric(d[outcome])
     d = d.dropna()
-    if d[group_col].nunique() < 5:
-        raise ValueError("At least five independent groups are recommended for random-intercept estimation.")
+    n_groups = int(d[group_col].nunique())
+    if n_groups < 2:
+        raise ValueError("A random-intercept model requires at least two independent groups.")
+    repeated_groups = int((d.groupby(group_col).size() >= 2).sum())
+    if repeated_groups < 2:
+        raise ValueError("A random-intercept model requires repeated observations for at least two groups. Consider a fixed-effects or descriptive analysis instead.")
     if len(d) < max(20, len(predictors) + 10):
         raise ValueError("Insufficient complete observations for the mixed model.")
     terms = [f"C(Q('{c}'))" if d[c].dtype == object else f"Q('{c}')" for c in predictors]
     formula = f"Q('{outcome}') ~ " + " + ".join(terms or ["1"])
     model = smf.mixedlm(formula, data=d, groups=d[group_col]).fit(reml=reml, method="lbfgs", disp=False)
+    # Preserve the caution alongside the fitted object for the UI/report layer.
+    model._small_group_warning = (
+        f"Only {n_groups} independent groups contributed. Random-effect variance estimates "
+        "may be unstable with fewer than five groups; interpret this fit as exploratory."
+        if n_groups < 5 else None
+    )
     return model, d
 
 

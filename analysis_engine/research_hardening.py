@@ -83,9 +83,19 @@ def fit_mixed_effects(df, outcome, animal_id, fixed_effects=None, session_col=No
     d=df[needed].copy()
     d[outcome]=pd.to_numeric(d[outcome],errors="coerce")
     d=d.dropna(subset=[outcome,animal_id]+fixed_effects)
-    if d[animal_id].nunique()<5: raise ValueError("At least five animals are recommended for random-intercept estimation.")
-    if d.groupby(animal_id).size().lt(2).sum()==d[animal_id].nunique():
-        raise ValueError("No repeated observations per animal; a random-intercept model is not supported by this design.")
+    n_animals = int(d[animal_id].nunique())
+    if n_animals < 2:
+        raise ValueError("A random-intercept model requires at least two independent animals.")
+    repeated_animals = int((d.groupby(animal_id).size() >= 2).sum())
+    if repeated_animals < 2:
+        raise ValueError("A random-intercept model requires repeated observations for at least two animals. Consider a fixed-effects or descriptive analysis instead.")
+    small_group_warning = None
+    if n_animals < 5:
+        small_group_warning = (
+            f"Only {n_animals} animals contribute to this model. The model is being attempted, "
+            "but random-effect variance estimates and inferential statistics may be unstable "
+            "with fewer than five independent animals. Treat results as exploratory."
+        )
     # Quote variable names safely for Patsy formulas.
     q=lambda x: 'Q("'+str(x).replace('\\','\\\\').replace('"','\\"')+'")'
     terms=[q(c) for c in fixed_effects]
@@ -120,7 +130,7 @@ def fit_mixed_effects(df, outcome, animal_id, fixed_effects=None, session_col=No
        "converged":bool(fit.converged),"optimizer":selected_optimizer,"reml":bool(reml),"log_likelihood":float(fit.llf),
        "aic":float(fit.aic) if np.isfinite(fit.aic) else None,
        "random_intercept_variance":float(fit.cov_re.iloc[0,0]),
-       "residual_variance":float(fit.scale),"warnings":list(dict.fromkeys(fit_warnings + fit_errors)) + ([] if fit.converged else ["Optimizer did not report convergence; interpret estimates cautiously."]),
+       "residual_variance":float(fit.scale),"warnings":list(dict.fromkeys(fit_warnings + fit_errors)) + ([small_group_warning] if small_group_warning else []) + ([] if fit.converged else ["Optimizer did not report convergence; interpret estimates cautiously."]),
        "interpretation":"Gaussian linear mixed-effects model with animal-level random intercept. Estimates are conditional associations, not causal effects."}
     return estimates,summary
 

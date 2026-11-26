@@ -38,6 +38,17 @@ def test_mixed_effects_random_intercept_model():
     assert "estimate" in estimates.columns
 
 
+def test_mixed_effects_attempts_small_animal_count_with_explicit_warning():
+    rng=np.random.default_rng(12); rows=[]
+    for i in range(4):
+        animal_effect=rng.normal()
+        for visit in range(5):
+            rows.append({"AnimalID":f"A{i}","phenotype":2+0.4*visit+animal_effect+rng.normal(0,.2),"visit":visit})
+    estimates,summary=fit_mixed_effects(pd.DataFrame(rows),"phenotype","AnimalID",["visit"])
+    assert summary["n_animals"]==4
+    assert any("fewer than five independent animals" in w for w in summary["warnings"])
+
+
 def test_run_registry_roundtrip(tmp_path):
     db=tmp_path/"runs.sqlite3"
     manifest={"run_timestamp_utc":"2026-11-23T00:00:00+00:00","dataset_name":"demo","outcome":"y","species":"sheep","audit":{"data_sha256":"abc"}}

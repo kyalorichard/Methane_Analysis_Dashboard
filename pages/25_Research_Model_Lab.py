@@ -47,7 +47,10 @@ if st.button("Fit mixed-effects model",type="primary",key="fit_mixed"):
         st.session_state["mixed_results"]=(estimates,summary); st.success("Mixed-effects model fitted.")
     except Exception as e: st.error(f"Model could not be fitted: {e}")
 if "mixed_results" in st.session_state:
-    est,summ=st.session_state["mixed_results"]; st.json(summ); st.dataframe(est,use_container_width=True,hide_index=True)
+    est,summ=st.session_state["mixed_results"]
+    for warning in summ.get("warnings", []):
+        st.warning(warning)
+    st.json(summ); st.dataframe(est,use_container_width=True,hide_index=True)
 st.divider(); st.subheader("3. Configurable phenotype QC")
 st.caption("Set study- or instrument-specific thresholds. These are user-defined screening rules, not universal biological reference intervals. Flags do not delete data.")
 qc_cols=st.multiselect("Variables to screen",numeric,default=numeric[:min(4,len(numeric))],key="qc_cols")

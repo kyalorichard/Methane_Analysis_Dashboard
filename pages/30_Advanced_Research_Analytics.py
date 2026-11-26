@@ -62,11 +62,13 @@ with tabs[1]:
     if st.button("Fit random-intercept mixed model", type="primary", key="ar_fit_mixed"):
         try:
             model, used = fit_random_intercept_model(df, y, predictors, group, reml)
-            st.session_state["ar_mixed_result"] = {"summary": model.summary().as_text(), "variance": variance_components_mixedlm(model), "n": len(used), "groups": used[group].nunique()}
+            st.session_state["ar_mixed_result"] = {"summary": model.summary().as_text(), "variance": variance_components_mixedlm(model), "n": len(used), "groups": used[group].nunique(), "warning": getattr(model, "_small_group_warning", None)}
         except Exception as exc:
             st.error(str(exc))
     result = st.session_state.get("ar_mixed_result")
     if result:
+        if result.get("warning"):
+            st.warning(result["warning"])
         metric_row([("N", f"{result['n']:,}", "Complete records"), ("GROUPS", f"{result['groups']:,}", "Independent grouping levels")])
         st.dataframe(result["variance"], use_container_width=True, hide_index=True)
         st.code(result["summary"])

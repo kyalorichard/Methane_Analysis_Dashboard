@@ -32,9 +32,6 @@ list_project_versions = store.list_project_versions
 
 header("Project workspace", "Create, import, manage, version and resume tenant-scoped livestock research projects.", badge="PROJECT LIFECYCLE")
 
-if _backend == 'cloud' and not configured():
-    st.error("Cloud project storage was selected, but DATABASE_URL is not configured. Set PROJECT_STORAGE_BACKEND=local to use the built-in SQLite + filesystem workspace.")
-    st.stop()
 st.caption(f"Storage backend: {'Local SQLite + filesystem' if _backend == 'local' else 'PostgreSQL + S3'}")
 
 try:
@@ -43,8 +40,85 @@ except Exception as exc:
     st.error(f"Unable to load projects: {exc}")
     st.stop()
 
-# Project creation and full-project import are available even when the tenant has no projects.
-create_tab, import_tab = st.tabs(["Create new project", "Import existing project"])
+# Project lifecycle entry points: reopen persisted projects, create new work, or import an archive.
+open_tab, create_tab, import_tab = st.tabs(["Open existing project", "Create new project", "Import project archive"])
+with open_tab:
+    st.subheader("Open a saved research project")
+    st.write("Reopen a project stored in your workspace. Its datasets and saved dataset-level protocol and variable mappings remain available across browser sessions. Select a dataset to restore it into the active analysis session.")
+    if not projects:
+        st.info("No saved projects are available yet. Create a project or import an archive to get started.")
+    else:
+        project_options = {f"{p['name']} · {p['species'].title()} · {p['id'][:8]}": p for p in projects}
+        preferred_open = st.session_state.get("last_opened_project_id") or st.session_state.get("last_imported_project_id") or st.session_state.get("active_project_id")
+        open_labels = list(project_options)
+        open_default = next((label for label, item in project_options.items() if item["id"] == preferred_open), open_labels[0])
+        open_label = st.selectbox("Choose a saved project", open_labels, index=open_labels.index(open_default), key="open_existing_project_choice")
+        open_project = project_options[open_label]
+        try:
+            open_datasets = list_datasets(principal.tenant_id, open_project["id"], principal.subject)
+        except Exception as exc:
+            open_datasets = []
+            st.error(f"Could not retrieve datasets for this project: {exc}")
+        info1, info2, info3 = st.columns(3)
+        info1.metric("Species", open_project["species"].title())
+        info2.metric("Stored datasets", len(open_datasets))
+        info3.metric("Created", str(open_project.get("created_at", "Not recorded"))[:10])
+        st.caption(open_project.get("description") or "No project description has been provided.")
+        dataset_choices = {"Open project without loading a dataset": None}
+        dataset_choices.update({f"{d['name']} · {int(d.get('row_count') or 0):,} rows · {str(d.get('created_at', ''))[:10]}": d for d in open_datasets})
+        chosen_dataset_label = st.selectbox("Dataset to restore (optional)", list(dataset_choices), key="open_project_dataset_choice")
+        if st.button("Open project", type="primary", key="open_saved_project_action"):
+            previous_project_id = st.session_state.get("active_project_id")
+            if previous_project_id and previous_project_id != open_project["id"]:
+                for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+                    st.session_state.pop(state_key, None)
+                st.session_state.pop("analysis_settings_scope_key", None)
+            st.session_state["active_project_id"] = open_project["id"]
+            st.session_state["active_project_species"] = open_project["species"]
+            st.session_state["species"] = open_project["species"]
+            st.session_state["analysis_project_scope"] = open_project["id"]
+            st.session_state["analysis_project_legacy_scope"] = open_project["name"]
+            st.session_state["analysis_species_scope"] = open_project["species"].lower()
+            st.session_state["last_opened_project_id"] = open_project["id"]
+            recent_ids = [open_project["id"]] + [x for x in st.session_state.get("recent_project_ids", []) if x != open_project["id"]]
+            st.session_state["recent_project_ids"] = recent_ids[:8]
+            st.session_state["workspace_active_project"] = open_label
+            chosen_dataset = dataset_choices[chosen_dataset_label]
+            if chosen_dataset is not None:
+                try:
+                    restored_df, restored_name, restored_species = load_dataset(principal.tenant_id, open_project["id"], chosen_dataset["id"], principal.subject)
+                    saved_config = store.get_dataset_configuration(principal.tenant_id, principal.subject, open_project["id"], chosen_dataset["id"])
+                    from platform_core.species import infer_species_roles
+                    restored_protocol = saved_config.get("measurement_protocol") or {}
+                    st.session_state["data"] = restored_df
+                    st.session_state["raw_data_snapshot"] = restored_df.copy(deep=True)
+                    st.session_state["cleaning_log"] = []
+                    st.session_state["data_name"] = restored_name
+                    st.session_state["active_dataset_id"] = chosen_dataset["id"]
+                    st.session_state["species"] = saved_config.get("species") or restored_species
+                    st.session_state["roles"] = saved_config.get("variable_mapping") or infer_species_roles(restored_df.columns, restored_species)
+                    st.session_state["measurement_protocol"] = restored_protocol
+                    st.session_state["protocol_instrument"] = restored_protocol.get("instrument", "")
+                    st.session_state["protocol_method"] = restored_protocol.get("method", "Not specified")
+                    st.session_state["protocol_units"] = restored_protocol.get("units", "")
+                    st.session_state["protocol_calibration"] = restored_protocol.get("calibration_status", "Not documented")
+                    st.session_state["protocol_ref"] = restored_protocol.get("protocol_reference", "")
+                    st.session_state["protocol_min_duration"] = restored_protocol.get("minimum_recording_duration_seconds", 0.0)
+                except Exception as exc:
+                    st.error(f"Project opened, but the selected dataset could not be restored: {exc}")
+                    st.stop()
+            else:
+                for state_key in ("data", "raw_data_snapshot", "data_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration"):
+                    st.session_state.pop(state_key, None)
+            st.success(f"Opened project: {open_project['name']}")
+            st.rerun()
+        recent_ids = st.session_state.get("recent_project_ids", [])
+        recent_projects = [p for pid in recent_ids for p in projects if p["id"] == pid]
+        if recent_projects:
+            st.divider()
+            st.caption("Recently opened in this browser session")
+            st.dataframe(pd.DataFrame([{"Project": p["name"], "Species": p["species"].title(), "Created": p.get("created_at")} for p in recent_projects]), use_container_width=True, hide_index=True)
+
 with create_tab:
     with st.form("create_project_form", clear_on_submit=True):
         st.subheader("Create a research project")
@@ -62,7 +136,11 @@ with create_tab:
             try:
                 species = next(p.key for p in PROFILES.values() if p.label == species_label)
                 pid = create_project(principal.tenant_id, principal.subject, new_name.strip(), species, description.strip())
-                st.success(f"Project created successfully (ID: {pid}).")
+                st.session_state["last_opened_project_id"] = pid
+                st.session_state["active_project_id"] = pid
+                st.session_state["active_project_species"] = species
+                st.session_state["analysis_project_scope"] = pid
+                st.success(f"Project created successfully (ID: {pid}). It is now selected as your active project.")
                 st.rerun()
             except Exception as exc:
                 st.error(f"Project creation failed: {exc}")
@@ -90,6 +168,8 @@ with import_tab:
                     result = import_project_archive(archive_bytes, principal.tenant_id, principal.subject, destination_name, restore_state)
                 st.success(f"Imported '{result['project_name']}' with {result['datasets_imported']} dataset(s). New project ID: {result['project_id']}")
                 st.session_state["last_imported_project_id"] = result["project_id"]
+                st.session_state["last_opened_project_id"] = result["project_id"]
+                st.session_state["active_project_id"] = result["project_id"]
                 st.rerun()
         except Exception as exc:
             st.error(f"Archive validation failed: {exc}")
@@ -100,7 +180,7 @@ if not projects:
     st.stop()
 
 project_labels = {f"{p['name']} · {p['species'].title()} · {p['id'][:8]}": p for p in projects}
-preferred = st.session_state.get("last_imported_project_id")
+preferred = st.session_state.get("last_opened_project_id") or st.session_state.get("last_imported_project_id") or st.session_state.get("active_project_id")
 default_label = next((label for label, item in project_labels.items() if item["id"] == preferred), next(iter(project_labels)))
 selected_label = st.selectbox("Active project", list(project_labels), index=list(project_labels).index(default_label), key="workspace_active_project")
 project = project_labels[selected_label]
@@ -160,6 +240,16 @@ with manage_tab:
     else:
         st.info("This project has no stored datasets yet. Upload the study data in the Datasets & protocols tab.")
 
+    with st.expander("Save project checkpoint", expanded=False):
+        st.caption("Your datasets and dataset-level configurations are already persisted in project storage. Create a named checkpoint to record the current project metadata and dataset manifest before a major analysis milestone.")
+        quick_checkpoint_note = st.text_input("Checkpoint description", placeholder="e.g. Baseline data preparation completed", key="quick_project_checkpoint_note")
+        if st.button("Save project checkpoint", type="primary", key="quick_save_project_checkpoint"):
+            try:
+                version = create_project_version(principal.tenant_id, principal.subject, project_id, quick_checkpoint_note.strip())
+                st.success(f"Project checkpoint v{version} saved.")
+            except Exception as exc:
+                st.error(f"Project checkpoint could not be saved: {exc}")
+
     with st.expander("Duplicate this project"):
         st.caption("Creates a separate project and copies all stored datasets and protocol metadata. The source project is not modified.")
         copy_name = st.text_input("New project name", value=f"{project['name']} — Copy", key="duplicate_project_name")
@@ -216,7 +306,7 @@ with data_tab:
                 source_label = st.selectbox("Original source file", list(source_options), key="raw_source_download_select")
                 source_item = source_options[source_label]
                 try:
-                    source_bytes, source_name, source_ext = storage.load_raw_source(principal.tenant_id, project_id, source_item["id"], principal.subject)
+                    source_bytes, source_name, source_ext = store.load_raw_source(principal.tenant_id, project_id, source_item["id"], principal.subject)
                     mime = {"csv":"text/csv", "parquet":"application/vnd.apache.parquet", "pq":"application/vnd.apache.parquet", "xlsx":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xls":"application/vnd.ms-excel"}.get(source_ext, "application/octet-stream")
                     st.download_button("Download immutable original upload", source_bytes, file_name=source_name, mime=mime, key="download_original_source")
                 except Exception as exc:
