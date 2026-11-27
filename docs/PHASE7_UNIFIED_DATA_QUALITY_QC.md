@@ -40,13 +40,23 @@ The engine does not mutate the input DataFrame, impute values, delete records or
 
 - QC runs and recorded decisions are written to the existing tenant/user/project-scoped analysis run registry when the configured metadata backend is available.
 - The QC Centre lists saved QC runs from the active project scope.
-- Downloadable ZIP package contains `manifest.json`, `qc_findings.csv`, `missingness_profile.csv` and `investigator_decisions.csv`.
+- Range dispositions record selected row positions, original and replacement values, method, rule limits, dataset fingerprint, rationale and timestamp.
+- The QC working copy can be explicitly activated for analysis; it can then be saved as a new immutable project dataset version through Data Preparation Studio.
+- Downloadable ZIP package contains `manifest.json`, `qc_findings.csv`, `missingness_profile.csv` and `investigator_decisions.csv`; when a working copy exists it also includes `qc_adjusted_analysis_copy.csv` and `qc_disposition_actions.json`.
 - Manifest records engine version, dataset fingerprint, project/dataset context, rules, settings, findings, limitations and decisions.
 
 ## Operational limitations
 
-- QC decision annotations and custom rules are session state; saved QC runs are project-scoped registry records, and the ZIP is the portable complete record. This release does not create a separate durable project-settings schema specifically for QC rules.
+- QC decision annotations, custom rules and the unactivated QC working copy are session state; saved QC runs are project-scoped registry records, and the ZIP is the portable complete record. After activating the QC-adjusted copy, use Data Preparation Studio to save it as a new durable project dataset version.
 - A cloud registry save requires an active project and working PostgreSQL configuration. If it is unavailable, the page reports the save failure and keeps the report/decision in session state for export.
 - The score is a heuristic triage aid, not a validated scientific data-quality index.
 - IQR outliers are distribution-based signals, not universal biological reference ranges. Study-specific thresholds require protocol justification.
+- Median estimation is a simple replacement strategy, not a model-based inferential imputation. It may attenuate variance and relationships. Within-animal interpolation is suitable only where a smooth trajectory is scientifically defensible; it should not be used for abrupt biological transitions or irregular processes without justification.
 - No live browser or production PostgreSQL/S3 integration test was performed in this environment.
+
+
+## QC disposition extension: winsorization (2026-11-27)
+
+The range-validation decision workflow also supports **Winsorize selected observations**. The investigator selects flagged row positions and lower/upper empirical quantiles (defaults: 5th and 95th percentiles). Thresholds are calculated from the remaining finite, unselected observations that pass the configured range; selected values are capped to those thresholds in the separate QC working copy. Rows are retained. The audit records selected positions, original and replacement values, quantiles, derived bounds, variable, dataset fingerprint, project, timestamp and rationale. The source dataset is not modified.
+
+Winsorization is a sensitivity/data-treatment decision, not proof that a value is erroneous. Quantiles and donor population must be justified for the study; report the method and compare key results with the unmodified data. At least two valid unselected donor observations are required. This implementation applies to selected flagged observations rather than automatically changing every tail observation in the variable.

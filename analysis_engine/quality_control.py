@@ -112,3 +112,174 @@ def run_quality_control(df: pd.DataFrame, *, rules: dict | None = None,
 
 def findings_frame(report: dict) -> pd.DataFrame:
     return pd.DataFrame(report.get("findings", []), columns=["check", "severity", "variable", "n_flagged", "detail", "recommendation"])
+
+
+def configured_range_mask(df: pd.DataFrame, variable: str, rule: dict) -> pd.Series:
+    """Return a boolean mask for finite numeric values outside a configured range."""
+    if variable not in df.columns:
+        raise KeyError(f"Variable {variable!r} is not present in the dataset.")
+    values = pd.to_numeric(df[variable], errors="coerce")
+    mask = pd.Series(False, index=df.index)
+    if rule.get("min") is not None:
+        mask |= values < float(rule["min"])
+    if rule.get("max") is not None:
+        mask |= values > float(rule["max"])
+    return mask.fillna(False)
+
+
+def apply_range_disposition(
+    df: pd.DataFrame,
+    *,
+    variable: str,
+    row_positions: list[int],
+    action: str,
+    method: str | None = None,
+    group_col: str | None = None,
+    animal_id: str | None = None,
+    time_col: str | None = None,
+    valid_mask: pd.Series | None = None,
+    lower_quantile: float = 0.05,
+    upper_quantile: float = 0.95,
+) -> tuple[pd.DataFrame, dict]:
+    """Apply an explicit range decision to a copy; never mutate the source frame.
+
+    row_positions are zero-based positional row identifiers from the currently
+    active source snapshot. Estimation donors are restricted to values that pass
+    the configured range when valid_mask is supplied.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("QC disposition expects a pandas DataFrame.")
+    if variable not in df.columns:
+        raise KeyError(f"Variable {variable!r} is not present in the dataset.")
+    positions = sorted(set(int(p) for p in row_positions))
+    if not positions or any(p < 0 or p >= len(df) for p in positions):
+        raise ValueError("Select at least one valid flagged row.")
+    action_key = str(action).strip().lower()
+    if action_key not in {"keep", "drop", "estimate", "winsorize"}:
+        raise ValueError("Action must be 'keep', 'drop', 'estimate' or 'winsorize'.")
+
+    result = df.copy(deep=True)
+    original = pd.to_numeric(df[variable], errors="coerce").iloc[positions]
+    audit = {
+        "action": action_key,
+        "variable": str(variable),
+        "row_positions": positions,
+        "original_values": [None if pd.isna(v) else float(v) for v in original.tolist()],
+        "replacement_values": [],
+        "method": method,
+        "group_col": group_col,
+        "animal_id": animal_id,
+        "time_col": time_col,
+        "lower_quantile": float(lower_quantile) if action_key == "winsorize" else None,
+        "upper_quantile": float(upper_quantile) if action_key == "winsorize" else None,
+        "records_before": int(len(df)),
+        "records_after": int(len(df)),
+    }
+    if action_key == "keep":
+        audit["replacement_values"] = audit["original_values"]
+        return result, audit
+
+    if action_key == "drop":
+        keep = np.ones(len(df), dtype=bool)
+        keep[positions] = False
+        result = df.iloc[keep].copy()
+        audit["records_after"] = int(len(result))
+        return result, audit
+
+    values = pd.to_numeric(df[variable], errors="coerce").astype(float).copy()
+    if action_key == "winsorize":
+        if not (0.0 <= float(lower_quantile) < float(upper_quantile) <= 1.0):
+            raise ValueError("Winsorization quantiles must satisfy 0 ≤ lower < upper ≤ 1.")
+        donor = values.notna() & np.isfinite(values)
+        if valid_mask is not None:
+            donor &= valid_mask.reindex(df.index, fill_value=False).astype(bool)
+        donor.iloc[positions] = False
+        pool = values[donor]
+        if len(pool) < 2:
+            raise ValueError("At least two valid, unselected observations are required for winsorization.")
+        lower_bound = float(pool.quantile(float(lower_quantile)))
+        upper_bound = float(pool.quantile(float(upper_quantile)))
+        if not np.isfinite(lower_bound) or not np.isfinite(upper_bound) or lower_bound > upper_bound:
+            raise ValueError("Could not derive valid winsorization thresholds from the donor observations.")
+        replacements = values.iloc[positions].clip(lower=lower_bound, upper=upper_bound).astype(float)
+        result[variable] = values.astype(float)
+        for pos, replacement in zip(positions, replacements.tolist()):
+            result.iat[pos, result.columns.get_loc(variable)] = float(replacement)
+        audit.update({
+            "method": "Quantile winsorization",
+            "lower_bound": lower_bound,
+            "upper_bound": upper_bound,
+            "replacement_values": [float(x) for x in replacements.tolist()],
+            "records_after": int(len(result)),
+        })
+        return result, audit
+
+    donor = values.notna() & np.isfinite(values)
+    if valid_mask is not None:
+        donor &= valid_mask.reindex(df.index, fill_value=False).astype(bool)
+    target_mask = np.zeros(len(df), dtype=bool)
+    target_mask[positions] = True
+    # Never use the flagged observations as donors for their own estimates.
+    donor.iloc[positions] = False
+    estimates = pd.Series(np.nan, index=df.index, dtype=float)
+
+    if method == "Global median":
+        pool = values[donor]
+        if pool.empty:
+            raise ValueError("No in-range observations are available to estimate from.")
+        estimates.iloc[positions] = float(pool.median())
+    elif method == "Group median":
+        if not group_col or group_col not in df.columns:
+            raise ValueError("Select a valid grouping variable for group-median estimation.")
+        donors = pd.DataFrame({"group": df[group_col], "value": values.where(donor)})
+        medians = donors.groupby("group", dropna=False)["value"].median()
+        for pos in positions:
+            key = df[group_col].iloc[pos]
+            estimate = medians.get(key, np.nan)
+            if pd.notna(estimate):
+                estimates.iloc[pos] = float(estimate)
+    elif method == "Within-animal interpolation":
+        if not animal_id or animal_id not in df.columns or not time_col or time_col not in df.columns:
+            raise ValueError("Within-animal interpolation requires valid animal and time variables.")
+        time_values = df[time_col]
+        if pd.api.types.is_datetime64_any_dtype(time_values):
+            numeric_time = pd.to_datetime(time_values, errors="coerce").map(lambda x: x.timestamp() if pd.notna(x) else np.nan)
+        else:
+            numeric_time = pd.to_numeric(time_values, errors="coerce")
+        work = pd.DataFrame({"animal": df[animal_id].to_numpy(), "time": np.asarray(numeric_time),
+                             "value": values.where(donor).to_numpy()}, index=np.arange(len(df)))
+        target_positions = set(positions)
+        for _, group in work.groupby("animal", dropna=True, sort=False):
+            group = group.dropna(subset=["time"]).sort_values("time")
+            donor_rows = group[group["value"].notna()]
+            if len(donor_rows) < 2:
+                continue
+            # Collapse duplicate visit times before interpolation.
+            donor_by_time = donor_rows.groupby("time", as_index=False)["value"].median().sort_values("time")
+            if len(donor_by_time) < 2:
+                continue
+            target_rows = group[group.index.isin(target_positions)]
+            for pos, row in target_rows.iterrows():
+                t = float(row["time"])
+                t_min, t_max = float(donor_by_time["time"].min()), float(donor_by_time["time"].max())
+                # Do not extrapolate beyond observed in-range measurements.
+                if t_min <= t <= t_max:
+                    estimates.iloc[pos] = float(np.interp(
+                        t, donor_by_time["time"].to_numpy(dtype=float),
+                        donor_by_time["value"].to_numpy(dtype=float)))
+    else:
+        raise ValueError("Choose a supported estimation method.")
+
+    missing_estimates = [p for p in positions if pd.isna(estimates.iloc[p]) or not np.isfinite(estimates.iloc[p])]
+    if missing_estimates:
+        raise ValueError(
+            f"Could not estimate {len(missing_estimates)} selected value(s) using {method}. "
+            "Choose another method or review the grouping / repeated-measure structure."
+        )
+    replacements = [float(estimates.iloc[p]) for p in positions]
+    result[variable] = pd.to_numeric(result[variable], errors="coerce").astype(float)
+    for pos, replacement in zip(positions, replacements):
+        result.iat[pos, result.columns.get_loc(variable)] = replacement
+    audit["replacement_values"] = replacements
+    audit["records_after"] = int(len(result))
+    return result, audit

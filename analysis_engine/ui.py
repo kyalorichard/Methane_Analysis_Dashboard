@@ -729,7 +729,7 @@ def render_sidebar_navigation():
                 selected_project = opts[chosen]
                 previous_project = st.session_state.get("active_project_id")
                 if previous_project != selected_project["id"]:
-                    for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "central_qc_report", "central_qc_history", "central_qc_rules", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+                    for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "central_qc_report", "central_qc_history", "central_qc_rules", "central_qc_working_data", "central_qc_working_actions", "central_qc_working_source_fingerprint", "central_qc_activated_data", "central_qc_activated_source_fingerprint", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
                         st.session_state.pop(state_key, None)
                     st.session_state.pop("analysis_settings_scope_key", None)
                     st.session_state.pop("analysis_species_scope", None)
