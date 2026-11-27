@@ -18,3 +18,6 @@ data/raw_archive/
 
 # Persistent local analysis result artifacts
 data/analysis_artifacts/
+
+# Local registered model binaries (keep out of Git)
+data/model_registry/
