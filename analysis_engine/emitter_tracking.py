@@ -2,6 +2,7 @@
 """Longitudinal emitter classification and transition summaries."""
 import numpy as np
 import pandas as pd
+from analysis_engine.emitter_thresholds import assign_emitter_tails
 
 def classify_emitters_by_round(df, animal_col, round_col, phenotype, tail_percent=10,
                               aggregation="median", min_records=1):
@@ -25,12 +26,9 @@ def classify_emitters_by_round(df, animal_col, round_col, phenotype, tail_percen
     thresholds = []
     for rnd, idx in unit.groupby(round_col, sort=False).groups.items():
         vals = unit.loc[idx, phenotype]
-        p = float(tail_percent)/100
-        low_cut, high_cut = float(vals.quantile(p)), float(vals.quantile(1-p))
-        ranks = vals.rank(method="first", pct=True)
-        unit.loc[idx, "emitter_group"] = np.select(
-            [ranks <= p, ranks > 1-p], ["Low emitter","High emitter"], default="Intermediate")
-        unit.loc[idx, "phenotype_percentile"] = vals.rank(method="average", pct=True)*100
+        labels, percentiles, low_cut, high_cut = assign_emitter_tails(vals, tail_percent)
+        unit.loc[idx, "emitter_group"] = labels
+        unit.loc[idx, "phenotype_percentile"] = percentiles
         thresholds.append({"round":rnd,"n_animals":len(vals),"low_cutpoint":low_cut,
                            "high_cutpoint":high_cut,"n_low":int((unit.loc[idx,"emitter_group"]=="Low emitter").sum()),
                            "n_high":int((unit.loc[idx,"emitter_group"]=="High emitter").sum())})

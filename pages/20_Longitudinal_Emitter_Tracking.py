@@ -3,12 +3,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from analysis_engine.ui import *
-from analysis_engine.emitter_tracking import classify_emitters_by_round, emitter_persistence_summary
+from analysis_engine.service_registry import get_service
+classify_emitters_by_round = get_service("classify_emitters_by_round")
+emitter_persistence_summary = get_service("emitter_persistence_summary")
 
 from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
 
 header("Longitudinal emitter tracking", "Assess whether animals retain low-, intermediate- or high-emitter status across recording rounds.")
+from analysis_engine.ui import render_workflow_shortcuts
+render_workflow_shortcuts("Related emitter workflow", [
+    ("Define low/high emitter cohorts", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
+])
 df = get_data()
 roles = get_roles(df)
 animal_default = roles.get("animal_id")

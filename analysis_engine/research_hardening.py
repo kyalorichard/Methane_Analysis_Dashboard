@@ -76,77 +76,28 @@ def grouped_classification_benchmark(df, outcome, features, animal_id, selected_
 
 
 def fit_mixed_effects(df, outcome, animal_id, fixed_effects=None, session_col=None, reml=True):
-    """Fit Gaussian random-intercept model; return structured estimates and diagnostics."""
-    import statsmodels.formula.api as smf
-    fixed_effects=fixed_effects or []
-    needed=[outcome,animal_id]+fixed_effects+([session_col] if session_col else [])
-    d=df[needed].copy()
-    d[outcome]=pd.to_numeric(d[outcome],errors="coerce")
-    d=d.dropna(subset=[outcome,animal_id]+fixed_effects)
-    n_animals = int(d[animal_id].nunique())
-    if n_animals < 2:
-        raise ValueError("A random-intercept model requires at least two independent animals.")
-    repeated_animals = int((d.groupby(animal_id).size() >= 2).sum())
-    if repeated_animals < 2:
-        raise ValueError("A random-intercept model requires repeated observations for at least two animals. Consider a fixed-effects or descriptive analysis instead.")
-    small_group_warning = None
-    if n_animals < 5:
-        small_group_warning = (
-            f"Only {n_animals} animals contribute to this model. The model is being attempted, "
-            "but random-effect variance estimates and inferential statistics may be unstable "
-            "with fewer than five independent animals. Treat results as exploratory."
-        )
-    # Quote variable names safely for Patsy formulas.
-    q=lambda x: 'Q("'+str(x).replace('\\','\\\\').replace('"','\\"')+'")'
-    terms=[q(c) for c in fixed_effects]
-    if session_col: terms.append(f"C({q(session_col)})")
-    formula=f"{q(outcome)} ~ " + (" + ".join(terms) if terms else "1")
-    model=smf.mixedlm(formula,d,groups=d[animal_id],re_formula="1")
-    fit=None; selected_optimizer=None; fit_errors=[]; fit_warnings=[]
-    # lbfgs can fail on near-boundary random-effect covariance estimates; retry
-    # with derivative-free / alternative optimizers before declaring failure.
-    for method in ("lbfgs", "powell", "bfgs", "cg", "nm"):
-        try:
-            with warnings.catch_warnings(record=True) as caught:
-                warnings.simplefilter("always")
-                candidate=model.fit(reml=reml,method=method,maxiter=2000,disp=False)
-            fit_warnings.extend(str(w.message) for w in caught)
-            if candidate.converged:
-                fit=candidate; selected_optimizer=method; break
-            fit=candidate; selected_optimizer=method
-            fit_errors.append(f"{method}: optimizer did not converge")
-        except Exception as exc:
-            fit_errors.append(f"{method}: {type(exc).__name__}: {str(exc)[:180]}")
-    if fit is None:
-        raise RuntimeError("Mixed-effects estimation failed with all optimizers: " + " | ".join(fit_errors))
-    ci=fit.conf_int()
-    estimates=pd.DataFrame({"term":fit.params.index,"estimate":fit.params.values,
-       "std_error":fit.bse.reindex(fit.params.index).values,
-       "z_value":fit.tvalues.reindex(fit.params.index).values,
-       "p_value":fit.pvalues.reindex(fit.params.index).values,
-       "ci_lower":ci.iloc[:,0].reindex(fit.params.index).values,
-       "ci_upper":ci.iloc[:,1].reindex(fit.params.index).values})
-    summary={"formula":formula,"n_records":int(len(d)),"n_animals":int(d[animal_id].nunique()),
-       "converged":bool(fit.converged),"optimizer":selected_optimizer,"reml":bool(reml),"log_likelihood":float(fit.llf),
-       "aic":float(fit.aic) if np.isfinite(fit.aic) else None,
-       "random_intercept_variance":float(fit.cov_re.iloc[0,0]),
-       "residual_variance":float(fit.scale),"warnings":list(dict.fromkeys(fit_warnings + fit_errors)) + ([small_group_warning] if small_group_warning else []) + ([] if fit.converged else ["Optimizer did not report convergence; interpret estimates cautiously."]),
-       "interpretation":"Gaussian linear mixed-effects model with animal-level random intercept. Estimates are conditional associations, not causal effects."}
-    return estimates,summary
+    """Compatibility adapter to the canonical mixed-model service.
+
+    Retains the historical ``(estimates, summary)`` return contract.
+    """
+    from analysis_engine.mixed_models import fit_animal_random_intercept
+    fit, used, summary = fit_animal_random_intercept(
+        df, outcome, animal_id, fixed_effects=fixed_effects,
+        session_col=session_col, reml=reml, min_records=2
+    )
+    ci = fit.conf_int()
+    estimates = pd.DataFrame({
+        "term": fit.params.index, "estimate": fit.params.values,
+        "std_error": fit.bse.reindex(fit.params.index).values,
+        "z_value": fit.tvalues.reindex(fit.params.index).values,
+        "p_value": fit.pvalues.reindex(fit.params.index).values,
+        "ci_lower": ci.iloc[:, 0].reindex(fit.params.index).values,
+        "ci_upper": ci.iloc[:, 1].reindex(fit.params.index).values,
+    })
+    return estimates, summary
 
 
 def configurable_qc(df, rules=None):
-    """Flag range, non-positive and missingness issues without deleting observations."""
-    rules=rules or {}; records=[]
-    for col,rule in rules.items():
-        if col not in df: continue
-        x=pd.to_numeric(df[col],errors="coerce")
-        valid=x.notna(); low=rule.get("min"); high=rule.get("max")
-        below=int((x<low).sum()) if low is not None else 0
-        above=int((x>high).sum()) if high is not None else 0
-        missing=int(x.isna().sum())
-        records.append({"variable":col,"minimum_rule":low,"maximum_rule":high,
-          "below_min_n":below,"above_max_n":above,"missing_n":missing,
-          "flagged_n":int(below+above),"rule_source":rule.get("source","user-configured; not a validated biological threshold"),
-          "status":"REVIEW" if below+above else "PASS"})
-    return pd.DataFrame(records)
+    """Backward-compatible adapter to the canonical configured-range QC service."""
+    from analysis_engine.quality_control import configured_range_summary
+    return configured_range_summary(df, rules)

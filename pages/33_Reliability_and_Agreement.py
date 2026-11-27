@@ -15,6 +15,10 @@ from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
 st.title("Reliability, Repeatability & Measurement Agreement")
 st.caption("Subject-level reliability, within/between-animal variability and paired-method agreement")
+from analysis_engine.ui import render_workflow_shortcuts
+render_workflow_shortcuts("Related repeated-measure workflow", [
+    ("Within-animal trajectories", "pages/07_Repeatability_Reliability.py", "🔁"),
+])
 
 if "data" not in st.session_state:
     st.info("Load a dataset using the platform data-management workflow first.")

@@ -2,11 +2,12 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
-import hashlib, json, platform, zipfile
+import json, platform, zipfile
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
+from analysis_engine.data_provenance import dataframe_fingerprint
 
 def _safe_json(value):
     if isinstance(value, dict): return {str(k): _safe_json(v) for k,v in value.items()}
@@ -61,7 +62,7 @@ def build_publication_bundle(df, *, outcome, animal_id=None, group_col=None, cov
             box=px.box(p,x=group_col,y=outcome,points="outliers",title=f"{outcome} by {group_col}")
             box.update_layout(template="plotly_white",font=dict(family="Arial",size=13))
             figs["outcome_by_group.html"]=pio.to_html(box,full_html=True,include_plotlyjs="cdn")
-    fingerprint=hashlib.sha256(pd.util.hash_pandas_object(df,index=True).values.tobytes()).hexdigest()
+    fingerprint=dataframe_fingerprint(df)
     limitations=[
         "This bundle is descriptive and does not by itself establish causal effects.",
         "Repeated records are aggregated to animal-level medians for independent-unit group summaries.",

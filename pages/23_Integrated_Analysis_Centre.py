@@ -105,8 +105,8 @@ if run:
         result["manifest"]["run_id"]=run_id
         result["manifest"]["project_id"]=st.session_state.get("active_project_id")
         result["manifest"]["dataset_id"]=st.session_state.get("active_dataset_id")
-        from analysis_engine.research_intelligence import dataframe_fingerprint
-        result["manifest"]["dataset_fingerprint_sha256"]=dataframe_fingerprint(df)
+        from analysis_engine.service_registry import get_service
+        result["manifest"]["dataset_fingerprint_sha256"]=get_service("dataframe_fingerprint")(df)
         result["manifest"]["measurement_protocol"]=st.session_state.get("measurement_protocol",{})
         result["manifest"]["roles"]=roles
         result["manifest"]["validation_design"]={

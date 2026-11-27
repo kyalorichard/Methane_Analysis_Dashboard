@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from io import BytesIO
-import hashlib
 import json
 import platform
 import zipfile
@@ -19,6 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from analysis_engine.data_provenance import dataframe_fingerprint
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
@@ -132,7 +132,7 @@ def build_scientific_report(df: pd.DataFrame, *, outcome: str, animal_id: str | 
     if group_col and group_col not in df: raise ValueError("Selected group variable is not present.")
     from analysis_engine.publication import publication_tables
     tables = publication_tables(df, outcome, animal_id, group_col, covariates or [])
-    fingerprint = hashlib.sha256(pd.util.hash_pandas_object(df, index=True).values.tobytes()).hexdigest()
+    fingerprint = dataframe_fingerprint(df)
     generated = datetime.now(timezone.utc).isoformat()
     manifest = {
         "report_type": "methane-scientific-report", "report_version": 1,

@@ -45,29 +45,16 @@ def fit_spline_additive(df: pd.DataFrame, outcome: str, smooth_terms: list[str],
 
 def fit_random_intercept_model(df: pd.DataFrame, outcome: str, predictors: list[str],
                                group_col: str, reml: bool = True):
-    """Fit a random-intercept linear mixed model grouped by animal/herd/site."""
-    cols = [outcome, group_col] + predictors
-    d = df[cols].copy()
-    d[outcome] = _numeric(d[outcome])
-    d = d.dropna()
-    n_groups = int(d[group_col].nunique())
-    if n_groups < 2:
-        raise ValueError("A random-intercept model requires at least two independent groups.")
-    repeated_groups = int((d.groupby(group_col).size() >= 2).sum())
-    if repeated_groups < 2:
-        raise ValueError("A random-intercept model requires repeated observations for at least two groups. Consider a fixed-effects or descriptive analysis instead.")
-    if len(d) < max(20, len(predictors) + 10):
-        raise ValueError("Insufficient complete observations for the mixed model.")
-    terms = [f"C(Q('{c}'))" if d[c].dtype == object else f"Q('{c}')" for c in predictors]
-    formula = f"Q('{outcome}') ~ " + " + ".join(terms or ["1"])
-    model = smf.mixedlm(formula, data=d, groups=d[group_col]).fit(reml=reml, method="lbfgs", disp=False)
-    # Preserve the caution alongside the fitted object for the UI/report layer.
-    model._small_group_warning = (
-        f"Only {n_groups} independent groups contributed. Random-effect variance estimates "
-        "may be unstable with fewer than five groups; interpret this fit as exploratory."
-        if n_groups < 5 else None
+    """Compatibility adapter to the canonical random-intercept fitting service."""
+    from analysis_engine.mixed_models import fit_animal_random_intercept
+    model, used, diagnostics = fit_animal_random_intercept(
+        df, outcome, group_col, fixed_effects=predictors, reml=reml,
+        min_records=max(20, len(predictors) + 10)
     )
-    return model, d
+    model._small_group_warning = next(
+        (w for w in diagnostics["warnings"] if "fewer than five groups" in w), None
+    )
+    return model, used
 
 
 def animal_trajectory_slopes(df: pd.DataFrame, animal_col: str, time_col: str,
@@ -161,28 +148,24 @@ def fit_quantile_regression(df: pd.DataFrame, outcome: str, predictors: list[str
 
 
 def fit_allometric_scaling(df: pd.DataFrame, outcome: str, size_variable: str):
-    """Fit log(outcome)=intercept+exponent*log(size), for positive measurements.
-
-    The exponent is an estimated scaling relationship. It is not automatically
-    a biological efficiency metric and requires justified units and covariates.
-    """
-    d = df[[outcome, size_variable]].copy()
-    d[outcome] = _numeric(d[outcome]); d[size_variable] = _numeric(d[size_variable])
-    d = d.dropna()
-    d = d.loc[(d[outcome] > 0) & (d[size_variable] > 0)].copy()
-    if len(d) < 10:
-        raise ValueError("At least ten positive paired observations are required for log-log scaling.")
-    d["_log_outcome"] = np.log(d[outcome])
-    d["_log_size"] = np.log(d[size_variable])
-    model = smf.ols("_log_outcome ~ _log_size", data=d).fit(cov_type="HC3")
-    ci = model.conf_int().loc["_log_size"]
+    """Compatibility adapter to the canonical allometric regression service."""
+    from analysis_engine.advanced import fit_allometry
+    model = fit_allometry(df, outcome, size_variable, covariates=None)
+    term = f'np.log(Q("{size_variable}"))'
+    # Patsy stores the transformed term under the expression used in the formula.
+    candidates = [name for name in model.params.index if "log" in str(name).lower()]
+    if not candidates:
+        raise RuntimeError("The canonical allometric model did not expose its log-size coefficient.")
+    term = candidates[0]
+    ci = model.conf_int().loc[term]
+    used = model.model.data.frame.copy()
     return {
-        "n": int(len(d)), "intercept": float(model.params["Intercept"]),
-        "scaling_exponent": float(model.params["_log_size"]),
+        "n": int(len(used)), "intercept": float(model.params["Intercept"]),
+        "scaling_exponent": float(model.params[term]),
         "exponent_ci_low": float(ci.iloc[0]), "exponent_ci_high": float(ci.iloc[1]),
         "r_squared": float(model.rsquared), "aic": float(model.aic),
-        "summary": model.summary().as_text(), "used_data": d,
-        "note": "Log-log association among positive paired observations. Interpret the exponent only in the context of the measured traits, units, population and study design."
+        "summary": model.summary().as_text(), "used_data": used,
+        "note": "Log-log association among positive paired observations. Interpret the exponent only in the context of measured traits, units, population and study design."
     }
 
 

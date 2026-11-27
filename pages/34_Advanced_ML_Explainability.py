@@ -16,10 +16,18 @@ from analysis_engine.ui import *
 from analysis_engine.ui import render_sidebar_navigation
 from analysis_engine.ml import REGRESSORS
 from analysis_engine.research_methods import grouped_learning_curve, feature_selection_stability, external_regression_validation
-from analysis_engine.research_hardening import CLASSIFIERS, grouped_classification_benchmark
+from analysis_engine.research_hardening import CLASSIFIERS
+from analysis_engine.service_registry import get_service
 
 render_sidebar_navigation()
-header("Advanced ML validation & explainable AI", "Grouped validation, model interpretation, calibration, uncertainty and independent-cohort assessment.")
+header("Unified Research Model Lab", "Grouped benchmarking, classification, model interpretation, calibration, uncertainty and independent-cohort assessment.")
+from analysis_engine.ui import render_workflow_shortcuts
+render_workflow_shortcuts("Model Lab workflows", [
+    ("Regression benchmarking", "pages/04_ML_Benchmarking.py", "📈"),
+    ("Classification & mixed models", "pages/25_Research_Model_Lab.py", "🧬"),
+    ("Variable importance", "pages/09_Explainability.py", "🔎"),
+])
+st.divider()
 cfg=load_active_settings(st.session_state); comparison_cfg=cfg.get("comparison", {})
 df=get_data(); roles=get_roles(df); nums=numeric_cols(df)
 if len(df)<10:
@@ -182,9 +190,9 @@ if "r64_model_comparison" in st.session_state:
             from analysis_engine.experiment_registry import save_experiment
             _uid = str(st.session_state.get("user_id") or st.session_state.get("username") or st.session_state.get("email") or "local-user")
             _cfg = {"settings": _settings, "outcome": outcome, "predictors": features, "grouping_unit": animal, "selected_models": compare_models, "folds": compare_folds, "bootstrap_replicates": compare_boot}
-            import hashlib, sklearn
+            import sklearn
             _analysis_frame = df[[outcome, animal] + list(features)].copy()
-            _fingerprint = hashlib.sha256(pd.util.hash_pandas_object(_analysis_frame, index=True).values.tobytes()).hexdigest()
+            _fingerprint = get_service("dataframe_fingerprint")(_analysis_frame)
             _meta = {"n_records": result["n_records"], "n_groups": result["n_groups"], "dataset_columns": list(df.columns), "dataset_fingerprint_sha256": _fingerprint, "scikit_learn_version": sklearn.__version__, "pandas_version": pd.__version__, "interpretation": result["interpretation"]}
             exp_id = save_experiment(_uid, exp_project.strip() or "default-project", exp_species, exp_name, _cfg, result["metrics"].to_dict("records"), result["paired_comparisons"].to_dict("records"), _meta)
             st.success(f"Experiment saved. Registry ID: {exp_id}")
@@ -221,7 +229,7 @@ if class_target:
     class_models=st.multiselect("Classifiers",list(CLASSIFIERS),default=list(CLASSIFIERS),key="r62_class_models")
     if st.button("Run animal-grouped classification benchmark",key="r62_class_run",disabled=not class_models):
         try:
-            scores,matrices,labels=grouped_classification_benchmark(df,class_target,features,animal,selected_models=class_models,n_splits=5,seed=int(seed))
+            scores,matrices,labels=get_service("grouped_classification")(df,class_target,features,animal,selected_models=class_models,n_splits=5,seed=int(seed))
             st.session_state["r62_classification"]=(scores,matrices,labels)
         except Exception as e: st.error(str(e))
     if "r62_classification" in st.session_state:

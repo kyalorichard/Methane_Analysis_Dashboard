@@ -7,13 +7,14 @@ It deliberately avoids treating uncalibrated sensor signals as methane mass flux
 from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
-import json, hashlib, platform, zipfile, importlib.metadata, os
+import json, platform, zipfile, importlib.metadata, os
 import numpy as np
 import pandas as pd
 from .metrics import descriptive_table
 from .phenotype_validation import distribution_diagnostics, repeated_measure_diagnostics, group_profile, correlate_with_covariate
 from .advanced import group_comparison
 from .ml import grouped_regression_benchmark
+from .data_provenance import dataframe_fingerprint
 
 
 def _json_safe(obj):
@@ -54,7 +55,7 @@ def dataset_audit(df: pd.DataFrame, animal_id: str | None = None) -> tuple[pd.Da
     audit={"n_records":int(n),"n_variables":int(df.shape[1]),"duplicate_rows":duplicates,
            "fully_empty_rows":empty_rows,"missing_percent":float(df.isna().mean().mean()*100),
            "n_animals":int(df[animal_id].nunique()) if animal_id and animal_id in df else None,
-           "data_sha256":hashlib.sha256(pd.util.hash_pandas_object(df,index=True).values.tobytes()).hexdigest()}
+           "data_sha256":dataframe_fingerprint(df)}
     return dictionary,pd.DataFrame(issue_rows),audit
 
 

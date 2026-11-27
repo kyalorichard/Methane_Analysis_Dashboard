@@ -3,24 +3,11 @@
 All diagnostics are descriptive/decision-support outputs. They do not certify biological validity.
 """
 from __future__ import annotations
-import hashlib
-import json
 import numpy as np
 import pandas as pd
 from scipy import stats
-
-
-def dataframe_fingerprint(df: pd.DataFrame) -> str:
-    """Stable SHA-256 fingerprint of dataframe values, column names and dtypes."""
-    h = hashlib.sha256()
-    h.update(json.dumps({"columns": [str(c) for c in df.columns],
-                         "dtypes": [str(x) for x in df.dtypes],
-                         "shape": list(df.shape)}, sort_keys=True).encode())
-    try:
-        h.update(pd.util.hash_pandas_object(df, index=True, categorize=True).values.tobytes())
-    except Exception:
-        h.update(df.astype("string").fillna("<NA>").to_csv(index=True).encode())
-    return h.hexdigest()
+from analysis_engine.data_provenance import dataframe_fingerprint
+from analysis_engine.quality_control import flag_data_quality_rows
 
 
 def dataset_readiness(df: pd.DataFrame, roles: dict | None = None, protocol: dict | None = None) -> dict:
@@ -86,36 +73,9 @@ def flag_data_quality(df: pd.DataFrame, columns: list[str] | None = None,
                       duration_col: str | None = None, min_duration: float | None = None,
                       nonnegative_columns: list[str] | None = None,
                       max_missing_pct: float = 30.0) -> pd.DataFrame:
-    """Return row-level QC flags; never deletes or changes source observations."""
-    selected = list(dict.fromkeys((columns or df.select_dtypes(include="number").columns.tolist())))
-    nonnegative_columns = set(nonnegative_columns or [])
-    rows = []
-    for col in selected:
-        if col not in df:
-            continue
-        x = pd.to_numeric(df[col], errors="coerce")
-        valid = x.dropna()
-        if valid.empty:
-            continue
-        q1, q3 = valid.quantile([.25, .75]); iqr = q3 - q1
-        lo, hi = (q1 - 1.5 * iqr, q3 + 1.5 * iqr) if iqr > 0 else (valid.min(), valid.max())
-        for idx in df.index:
-            value = x.loc[idx]
-            flags = []
-            if pd.isna(value): flags.append("Missing")
-            else:
-                if col in nonnegative_columns and value < 0:
-                    flags.append("Negative value in variable configured as non-negative")
-                if value < lo or value > hi:
-                    flags.append("IQR outlier (review; not automatic exclusion)")
-            if duration_col and duration_col in df and min_duration is not None:
-                duration = pd.to_numeric(pd.Series([df.at[idx, duration_col]]), errors="coerce").iloc[0]
-                if pd.isna(duration): flags.append("Missing recording duration")
-                elif duration < min_duration: flags.append("Below minimum recording duration")
-            if flags:
-                rows.append({"row_index": idx, "variable": col, "value": value,
-                             "flags": "; ".join(flags)})
-    return pd.DataFrame(rows, columns=["row_index","variable","value","flags"])
+    """Backward-compatible adapter to the central non-destructive QC engine."""
+    return flag_data_quality_rows(df, columns, duration_col, min_duration,
+                                   nonnegative_columns, max_missing_pct)
 
 
 def calibration_diagnostics(df: pd.DataFrame, reference_col: str, measured_col: str) -> tuple[dict, pd.DataFrame]:

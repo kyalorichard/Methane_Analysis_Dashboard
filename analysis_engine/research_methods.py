@@ -159,7 +159,7 @@ def dataset_validation_report(df: pd.DataFrame) -> dict:
 def create_reproducibility_manifest(df, analysis_name, parameters, dataset_name=None,
                                     seed=42, software_versions=None):
     """Create JSON-serialisable analysis provenance without embedding raw data."""
-    from analysis_engine.research_intelligence import dataframe_fingerprint
+    from analysis_engine.data_provenance import dataframe_fingerprint
     versions = software_versions or {"python": platform.python_version(), "pandas": pd.__version__, "numpy": np.__version__}
     return {"analysis_name": str(analysis_name), "created_utc": datetime.now(timezone.utc).isoformat(),
             "dataset_name": dataset_name, "dataset_fingerprint": dataframe_fingerprint(df),

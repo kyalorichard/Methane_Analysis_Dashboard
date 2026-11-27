@@ -1,14 +1,21 @@
 import streamlit as st
 import pandas as pd
 from analysis_engine.ui import header, render_sidebar_navigation, empty_state
-from analysis_engine.publication import build_publication_bundle, publication_tables
-from analysis_engine.scientific_reports import build_scientific_report
+from analysis_engine.service_registry import get_service
+build_publication_bundle = get_service("publication_bundle")
+publication_tables = get_service("publication_tables")
+build_scientific_report = get_service("scientific_report")
 from platform_core.auth import require_principal
 
 st.set_page_config(page_title="Publication suite | Methane Phenotype Analytics",page_icon="📚",layout="wide")
 require_principal()
 render_sidebar_navigation()
-header("Scientific publication suite","Generate manuscript-oriented descriptive tables, interactive figures, methods notes and reproducibility metadata.",badge="V14")
+header("Scientific publication & reporting suite","Generate manuscript-oriented descriptive tables, interactive figures, methods notes and reproducibility metadata.",badge="V14")
+from analysis_engine.ui import render_workflow_shortcuts
+render_workflow_shortcuts("Reporting workflows", [
+    ("Quick data & manifest exports", "pages/15_Reports_Exports.py", "📄"),
+])
+st.divider()
 df=st.session_state.get("data")
 if df is None:
     empty_state("No active dataset","Load a dataset in Project Workspace.")

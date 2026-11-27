@@ -27,6 +27,11 @@ def fit_gee(df, outcome, predictors, animal_id, settings=None):
 
 
 def fit_mixedlm(df, outcome, predictors, animal_id, settings=None):
+    """Canonical random-intercept model adapter used by conventional model pages."""
     cfg=(settings or {}).get('conventional', {})
-    d=df[[outcome]+predictors+[animal_id]].dropna().copy()
-    return smf.mixedlm(_formula(d,outcome,predictors),data=d,groups=d[animal_id]).fit(reml=bool(cfg.get('mixed_reml',True)),method='lbfgs',disp=False)
+    from analysis_engine.mixed_models import fit_animal_random_intercept
+    fit, _, _ = fit_animal_random_intercept(
+        df, outcome, animal_id, fixed_effects=predictors,
+        reml=bool(cfg.get('mixed_reml', True)), min_records=max(3, len(predictors) + 2)
+    )
+    return fit

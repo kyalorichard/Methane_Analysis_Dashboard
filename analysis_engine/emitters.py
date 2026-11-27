@@ -1,6 +1,7 @@
 
 import numpy as np
 import pandas as pd
+from analysis_engine.emitter_thresholds import assign_emitter_tails
 
 def build_emitter_cohorts(df, phenotype, tail_percent=10, animal_id_col=None,
                           aggregation="median", min_records=1):
@@ -46,15 +47,11 @@ def build_emitter_cohorts(df, phenotype, tail_percent=10, animal_id_col=None,
     values = pd.to_numeric(out[phenotype], errors="coerce").dropna()
     if values.empty:
         raise ValueError("No analysis units remain after applying the minimum-record requirement.")
-    low_cut = float(values.quantile(float(tail_percent) / 100))
-    high_cut = float(values.quantile(1 - float(tail_percent) / 100))
-    # Rank-based tail assignment gives the requested approximate cohort sizes,
-    # while explicitly preserving ties at cut-points in the reported thresholds.
+    # Shared rank-based tail assignment is also used by round-specific tracking.
     out = out.loc[pd.to_numeric(out[phenotype], errors="coerce").notna()].copy()
-    ranks = out[phenotype].rank(method="first", pct=True)
-    p = float(tail_percent) / 100
-    out["emitter_group"] = np.select([ranks <= p, ranks > (1-p)], ["Low emitter", "High emitter"], default="Intermediate")
-    out["phenotype_percentile"] = out[phenotype].rank(method="average", pct=True) * 100
+    labels, percentiles, low_cut, high_cut = assign_emitter_tails(out[phenotype], tail_percent)
+    out["emitter_group"] = labels
+    out["phenotype_percentile"] = percentiles
     out["phenotype_used"] = phenotype
     out["low_threshold_value"] = low_cut
     out["high_threshold_value"] = high_cut

@@ -100,3 +100,6 @@ if nested is not None:
     st.download_button("Download nested benchmark results",
         nested.to_csv(index=False).encode("utf-8"),"nested_grouped_ml_benchmark.csv","text/csv")
     st.warning("Interpret outer-fold estimates with their fold-level variability. Small numbers of animals, strong group imbalance and limited independent test groups can still produce uncertain performance estimates.")
+
+
+st.page_link("pages/34_Advanced_ML_Explainability.py", label="Open the unified Model Lab", icon="🤖")

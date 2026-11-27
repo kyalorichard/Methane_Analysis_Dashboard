@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 from analysis_engine.ui import header, metric_row, render_sidebar_navigation, empty_state
 from analysis_engine.research_intelligence import (
-    dataset_readiness, automated_recommendations, flag_data_quality,
+    dataset_readiness, automated_recommendations,
     calibration_diagnostics, phenotype_evidence_matrix
 )
 from platform_core.auth import require_principal
@@ -33,7 +33,7 @@ metric_row([
     ("MISSING CELLS", f"{readiness['missing_pct']:.1f}%", "Percentage of all cells missing"),
 ])
 
-tabs = st.tabs(["Study setup & readiness", "Automated QC", "Calibration & agreement", "Phenotype evidence", "Analysis recommendations"])
+tabs = st.tabs(["Study setup & readiness", "QC workspace", "Calibration & agreement", "Phenotype evidence", "Analysis recommendations"])
 
 with tabs[0]:
     st.subheader("Study and measurement protocol")
@@ -80,32 +80,10 @@ with tabs[0]:
                   "animals":readiness["n_animals"]})
 
 with tabs[1]:
-    st.subheader("Non-destructive quality control")
-    st.caption("Flags observations for review. The source dataset is never modified and flagged rows are not automatically removed.")
-    numeric = df.select_dtypes(include="number").columns.tolist()
-    chosen = st.multiselect("Variables to screen", numeric, default=([outcome] if outcome in numeric else numeric[:5]))
-    duration_opts=["— Not selected —"]+df.columns.tolist()
-    duration_choice=st.selectbox("Recording duration variable",duration_opts,
-        index=(duration_opts.index(duration) if duration in duration_opts else 0))
-    min_dur=st.number_input("Minimum duration threshold (seconds)",min_value=0.0,
-        value=float(protocol.get("minimum_recording_duration_seconds",0) or 0),step=10.0)
-    nonnegative=st.multiselect("Variables expected to be non-negative (optional)",chosen,
-        default=([outcome] if outcome in chosen else []),
-        help="Only apply this rule where negative values are physically invalid for the documented measurement scale.")
-    if st.button("Run QC screening", type="primary"):
-        qc=flag_data_quality(df, chosen, None if duration_choice.startswith("—") else duration_choice,
-                             min_dur if min_dur>0 else None, nonnegative_columns=nonnegative)
-        st.session_state["research_qc_results"]=qc
-    qc=st.session_state.get("research_qc_results")
-    if qc is not None:
-        if qc.empty: st.success("No flags were generated for the selected variables and rules.")
-        else:
-            st.warning(f"{len(qc):,} variable-level row flags require review.")
-            st.dataframe(qc,use_container_width=True,hide_index=True)
-            st.download_button("Download QC flags (CSV)",qc.to_csv(index=False).encode(),
-                               "methane_qc_flags.csv","text/csv")
-    else:
-        st.info("Select variables and run QC screening to generate a review queue.")
+    st.subheader("Central data quality workflow")
+    st.info("Dataset integrity checks, row-level flags, protocol ranges, outlier review, QC dispositions and audit history are managed in one place to prevent competing QC decisions.")
+    st.page_link("pages/01_Data_Quality_QC_Centre.py", label="Open Data Quality & QC Centre", icon="🧹")
+    st.caption("Research Intelligence consumes QC and phenotype evidence; it does not maintain a second QC decision queue.")
 
 with tabs[2]:
     st.subheader("Reference-based calibration and agreement")

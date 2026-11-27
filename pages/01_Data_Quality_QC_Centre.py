@@ -4,8 +4,12 @@ from datetime import datetime, timezone
 import pandas as pd
 import streamlit as st
 from analysis_engine.ui import header, metric_row, render_sidebar_navigation, empty_state
-from analysis_engine.quality_control import (run_quality_control, findings_frame, dataframe_fingerprint,
-    configured_range_mask, apply_range_disposition)
+from analysis_engine.service_registry import get_service
+run_quality_control = get_service("run_quality_control")
+findings_frame = get_service("findings_frame")
+configured_range_mask = get_service("configured_range_mask")
+dataframe_fingerprint = get_service("dataframe_fingerprint")
+apply_range_disposition = get_service("apply_qc_disposition")
 from platform_core.auth import require_principal
 
 st.set_page_config(page_title="Data Quality & QC Centre | Methane Phenotype Analytics", page_icon="🧹", layout="wide")

@@ -4,23 +4,11 @@ QC flags are screening evidence, not automatic exclusion or proof of invalidity.
 """
 from __future__ import annotations
 from datetime import datetime, timezone
-import hashlib, json
 import numpy as np
 import pandas as pd
+from analysis_engine.data_provenance import dataframe_fingerprint
 
-ENGINE_VERSION = "1.0.0"
-
-
-def dataframe_fingerprint(df: pd.DataFrame) -> str:
-    """Stable best-effort fingerprint of values, index and column metadata."""
-    h = hashlib.sha256()
-    h.update(json.dumps([str(c) for c in df.columns], ensure_ascii=False).encode())
-    h.update(json.dumps([str(x) for x in df.dtypes]).encode())
-    try:
-        h.update(pd.util.hash_pandas_object(df, index=True).values.tobytes())
-    except Exception:
-        h.update(df.to_csv(index=True).encode("utf-8", errors="replace"))
-    return h.hexdigest()
+ENGINE_VERSION = "1.1.0"
 
 
 def run_quality_control(df: pd.DataFrame, *, rules: dict | None = None,
@@ -108,6 +96,70 @@ def run_quality_control(df: pd.DataFrame, *, rules: dict | None = None,
             "animal_repeated_measure_summary": repeated,
             "rules": rules, "settings": {"outlier_method": outlier_method, "iqr_multiplier": float(iqr_multiplier), "animal_id": animal_id, "time_col": time_col},
             "interpretation": "Screening score is a prioritisation aid, not a validated measure of scientific data quality. Flags require investigator review; no records were changed or removed."}
+
+
+def flag_data_quality_rows(df: pd.DataFrame, columns: list[str] | None = None,
+                           duration_col: str | None = None, min_duration: float | None = None,
+                           nonnegative_columns: list[str] | None = None,
+                           max_missing_pct: float = 30.0) -> pd.DataFrame:
+    """Create a non-destructive row-level QC review queue.
+
+    Outliers are screening flags only. The function never drops or edits records.
+    ``max_missing_pct`` is retained for API compatibility and future variable-level
+    summaries; row-level flags are emitted for missing observations regardless.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("Row-level QC expects a pandas DataFrame.")
+    selected = list(dict.fromkeys(columns or df.select_dtypes(include="number").columns.tolist()))
+    nonnegative = set(nonnegative_columns or [])
+    rows = []
+    for col in selected:
+        if col not in df.columns:
+            continue
+        x = pd.to_numeric(df[col], errors="coerce")
+        valid = x.replace([np.inf, -np.inf], np.nan).dropna()
+        if valid.empty:
+            continue
+        q1, q3 = valid.quantile([.25, .75]); spread = q3 - q1
+        lo, hi = (q1 - 1.5 * spread, q3 + 1.5 * spread) if spread > 0 else (valid.min(), valid.max())
+        for pos, (idx, value) in enumerate(x.items()):
+            flags = []
+            if pd.isna(value) or not np.isfinite(value):
+                flags.append("Missing or non-finite value")
+            else:
+                if col in nonnegative and value < 0:
+                    flags.append("Negative value in variable configured as non-negative")
+                if value < lo or value > hi:
+                    flags.append("IQR outlier (review; not automatic exclusion)")
+            if duration_col and duration_col in df.columns and min_duration is not None:
+                duration = pd.to_numeric(pd.Series([df.iloc[pos][duration_col]]), errors="coerce").iloc[0]
+                if pd.isna(duration):
+                    flags.append("Missing recording duration")
+                elif duration < min_duration:
+                    flags.append("Below minimum recording duration")
+            if flags:
+                rows.append({"row_index": idx, "row_position": pos, "variable": col,
+                             "value": value, "flags": "; ".join(flags)})
+    return pd.DataFrame(rows, columns=["row_index", "row_position", "variable", "value", "flags"])
+
+
+def configured_range_summary(df: pd.DataFrame, rules: dict | None = None) -> pd.DataFrame:
+    """Summarise configured numeric range violations using the canonical masks."""
+    records = []
+    for col, rule in (rules or {}).items():
+        if col not in df.columns or not isinstance(rule, dict):
+            continue
+        x = pd.to_numeric(df[col], errors="coerce")
+        below = int((x < float(rule["min"])).fillna(False).sum()) if rule.get("min") is not None else 0
+        above = int((x > float(rule["max"])).fillna(False).sum()) if rule.get("max") is not None else 0
+        records.append({"variable": col, "minimum_rule": rule.get("min"),
+                        "maximum_rule": rule.get("max"), "below_min_n": below,
+                        "above_max_n": above, "missing_n": int(x.isna().sum()),
+                        "flagged_n": below + above,
+                        "rule_source": rule.get("source", "user-configured; not a validated biological threshold"),
+                        "status": "REVIEW" if below + above else "PASS"})
+    return pd.DataFrame(records, columns=["variable", "minimum_rule", "maximum_rule",
+        "below_min_n", "above_max_n", "missing_n", "flagged_n", "rule_source", "status"])
 
 
 def findings_frame(report: dict) -> pd.DataFrame:

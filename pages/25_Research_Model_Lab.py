@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from analysis_engine.ui import header, render_sidebar_navigation, empty_state
-from analysis_engine.research_hardening import grouped_classification_benchmark, fit_mixed_effects
+from analysis_engine.service_registry import get_service
 from platform_core.auth import require_principal
 
 st.set_page_config(page_title="Research model lab | Methane Phenotype Analytics",page_icon="🧬",layout="wide")
@@ -23,7 +23,7 @@ features=st.multiselect("Predictors",[c for c in cols if c not in {target,animal
 models=st.multiselect("Classifiers",["Logistic Regression","Random Forest","Extra Trees","HistGradientBoosting"],default=["Logistic Regression","Random Forest","Extra Trees"],key="class_models")
 if st.button("Run grouped classification",type="primary",key="run_classification"):
     try:
-        scores,matrices,labels=grouped_classification_benchmark(df,target,features,animal,models,nfold)
+        scores,matrices,labels=get_service("grouped_classification")(df,target,features,animal,models,nfold)
         st.session_state["class_results"]=(scores,matrices,labels)
         st.success("Grouped classification benchmark completed.")
     except Exception as e: st.error(f"Classification could not be completed: {e}")
@@ -43,7 +43,7 @@ with c3: session=st.selectbox("Optional session / round",["— None —"]+cols,k
 fixed=st.multiselect("Fixed-effect predictors",[c for c in cols if c not in {outcome,animal_m}],key="mixed_fixed")
 if st.button("Fit mixed-effects model",type="primary",key="fit_mixed"):
     try:
-        estimates,summary=fit_mixed_effects(df,outcome,animal_m,fixed,None if session.startswith("—") else session)
+        estimates,summary=get_service("mixed_effects_summary")(df,outcome,animal_m,fixed,None if session.startswith("—") else session)
         st.session_state["mixed_results"]=(estimates,summary); st.success("Mixed-effects model fitted.")
     except Exception as e: st.error(f"Model could not be fitted: {e}")
 if "mixed_results" in st.session_state:
@@ -53,3 +53,5 @@ if "mixed_results" in st.session_state:
     st.json(summ); st.dataframe(est,use_container_width=True,hide_index=True)
 st.divider()
 st.info("Dataset integrity, phenotype outlier screening and configurable range checks are centralised in Data Quality & QC Centre under Data Preparation. Model-specific cross-validation and convergence diagnostics remain in this research module.")
+
+st.page_link("pages/34_Advanced_ML_Explainability.py", label="Open the unified Model Lab", icon="🤖")

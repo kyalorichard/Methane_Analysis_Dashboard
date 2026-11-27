@@ -63,3 +63,5 @@ if imp is not None and not imp.empty:
     st.dataframe(imp,use_container_width=True)
     st.download_button('Download variable importance table',imp.to_csv(index=False).encode(),'variable_importance_by_model.csv','text/csv')
 st.info('Permutation importance is model- and holdout-dependent, not a causal effect. Correlated predictors can share or mask importance. Interpret importance alongside biological plausibility, uncertainty, measurement quality, and external validation. Importance from one grouped holdout is exploratory; repeated grouped resampling is recommended for publication-grade stability estimates.')
+
+st.page_link("pages/34_Advanced_ML_Explainability.py", label="Open advanced explainability and validation", icon="💡")

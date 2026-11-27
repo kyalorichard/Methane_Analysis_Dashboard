@@ -4,7 +4,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from analysis_engine.ui import *
-from analysis_engine.emitters import build_emitter_cohorts, emitter_group_summary, emitter_profile
+from analysis_engine.service_registry import get_service
+build_emitter_cohorts = get_service("build_emitter_cohorts")
+emitter_group_summary = get_service("emitter_group_summary")
+emitter_profile = get_service("emitter_profile")
 from analysis_engine.reporting import excel_bytes
 
 from analysis_engine.ui import render_sidebar_navigation
@@ -14,6 +17,10 @@ header(
     "Low & high emitter assessment",
     "Define phenotype-specific lower and upper percentile cohorts, inspect their profiles and export a reproducible report."
 )
+from analysis_engine.ui import render_workflow_shortcuts
+render_workflow_shortcuts("Related emitter workflow", [
+    ("Track emitter persistence across rounds", "pages/20_Longitudinal_Emitter_Tracking.py", "🔁"),
+])
 df = get_data()
 roles = get_roles(df)
 numeric = df.select_dtypes(include="number").columns.tolist()

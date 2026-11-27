@@ -681,10 +681,7 @@ def render_sidebar_navigation():
                 ("Phenotype validity analysis", "pages/21_Phenotype_Validation.py", "✅"),
             ]),
             ("05 · MACHINE LEARNING", [
-                ("Model benchmarking & nested validation", "pages/04_ML_Benchmarking.py", "🤖"),
-                ("Research model lab", "pages/25_Research_Model_Lab.py", "🧬"),
-                ("Explainability & external validation", "pages/34_Advanced_ML_Explainability.py", "💡"),
-                ("Variable importance", "pages/09_Explainability.py", "🔎"),
+                ("Unified Model Lab · benchmarking, validation & explainability", "pages/34_Advanced_ML_Explainability.py", "🤖"),
             ]),
             ("06 · LONGITUDINAL & EMITTER ANALYSIS", [
                 ("Animal trajectories & repeated rounds", "pages/10_Longitudinal_Analysis.py", "📉"),
@@ -700,13 +697,19 @@ def render_sidebar_navigation():
                 ("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"),
                 ("Advanced scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
                 ("Advanced nonlinear analysis (legacy)", "pages/11_Advanced_Analysis.py", "🧮"),
-                ("Repeatability trajectory view (legacy)", "pages/07_Repeatability_Reliability.py", "🔁"),
+
             ]),
             ("08 · SCIENTIFIC REPORTING", [
-                ("Scientific publication suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
-                ("Reports, tables & exports", "pages/15_Reports_Exports.py", "📄"),
+                ("Scientific publication & reporting suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
                 ("Phenotype evidence scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
                 ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
+            ]),
+            ("SPECIALIST WORKFLOWS · ALL FEATURES RETAINED", [
+                ("Regression benchmarking", "pages/04_ML_Benchmarking.py", "📈"),
+                ("Research model lab · classification & mixed models", "pages/25_Research_Model_Lab.py", "🧬"),
+                ("Variable importance", "pages/09_Explainability.py", "🔎"),
+                ("Quick reports, tables & exports", "pages/15_Reports_Exports.py", "📄"),
+                ("Within-animal trajectory view", "pages/07_Repeatability_Reliability.py", "🔁"),
             ]),
         ]
         for i, (group, links) in enumerate(groups):
@@ -767,3 +770,12 @@ def render_sidebar_navigation():
             st.info("No active dataset. Open Overview to import data.")
 
 
+
+
+def render_workflow_shortcuts(title: str, links: list[tuple[str, str, str]]):
+    """Render consistent cross-links between consolidated workspaces and specialist workflows."""
+    st.markdown(f"#### {title}")
+    cols = st.columns(min(3, max(1, len(links))))
+    for index, (label, target, icon) in enumerate(links):
+        with cols[index % len(cols)]:
+            st.page_link(target, label=label, icon=icon, use_container_width=True)

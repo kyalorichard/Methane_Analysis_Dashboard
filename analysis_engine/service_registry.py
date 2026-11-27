@@ -7,11 +7,30 @@ remain distinct and are named explicitly to prevent accidental substitution.
 from __future__ import annotations
 
 SERVICE_MAP = {
+    # Data quality and provenance
+    "dataframe_fingerprint": ("analysis_engine.data_provenance", "dataframe_fingerprint"),
+    "run_quality_control": ("analysis_engine.quality_control", "run_quality_control"),
+    "findings_frame": ("analysis_engine.quality_control", "findings_frame"),
+    "configured_range_mask": ("analysis_engine.quality_control", "configured_range_mask"),
+    "row_level_qc": ("analysis_engine.quality_control", "flag_data_quality_rows"),
+    "configured_range_summary": ("analysis_engine.quality_control", "configured_range_summary"),
+    "apply_qc_disposition": ("analysis_engine.quality_control", "apply_range_disposition"),
+    # Canonical mixed-effects and shared model workflows
+    "animal_random_intercept": ("analysis_engine.mixed_models", "fit_animal_random_intercept"),
+    "mixed_effects_summary": ("analysis_engine.research_hardening", "fit_mixed_effects"),
+    "grouped_classification": ("analysis_engine.research_hardening", "grouped_classification_benchmark"),
+    "assign_emitter_tails": ("analysis_engine.emitter_thresholds", "assign_emitter_tails"),
+    "build_emitter_cohorts": ("analysis_engine.emitters", "build_emitter_cohorts"),
+    "classify_emitters_by_round": ("analysis_engine.emitter_tracking", "classify_emitters_by_round"),
+    "emitter_group_summary": ("analysis_engine.emitters", "emitter_group_summary"),
+    "emitter_profile": ("analysis_engine.emitters", "emitter_profile"),
+    "emitter_persistence_summary": ("analysis_engine.emitter_tracking", "emitter_persistence_summary"),
     "preprocess_frame": ("analysis_engine.settings_runtime", "preprocess_frame"),
     "settings_consumption_report": ("analysis_engine.settings_runtime", "settings_consumption_report"),
     "fit_ols": ("analysis_engine.statistics", "fit_ols"),
     "fit_gee": ("analysis_engine.statistics", "fit_gee"),
     "fit_mixedlm": ("analysis_engine.statistics", "fit_mixedlm"),
+    "fit_allometric_scaling": ("analysis_engine.advanced_research", "fit_allometric_scaling"),
     "grouped_regression": ("analysis_engine.ml", "grouped_regression_benchmark"),
     "nested_grouped_regression": ("analysis_engine.ml", "nested_grouped_regression_benchmark"),
     "configured_estimator": ("analysis_engine.ml", "configured_estimator"),
@@ -48,6 +67,9 @@ SERVICE_MAP = {
     "prepare_forecast_series": ("analysis_engine.time_series_forecasting", "prepare_series"),
     "compare_forecasters": ("analysis_engine.time_series_forecasting", "compare_forecasters"),
     "report_bundle": ("analysis_engine.standalone_pipeline", "build_analysis_bundle"),
+    "publication_bundle": ("analysis_engine.publication", "build_publication_bundle"),
+    "publication_tables": ("analysis_engine.publication", "publication_tables"),
+    "scientific_report": ("analysis_engine.scientific_reports", "build_scientific_report"),
 }
 
 def get_service(name: str):
