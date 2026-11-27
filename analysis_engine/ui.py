@@ -682,6 +682,7 @@ def render_sidebar_navigation():
             ]),
             ("05 · MACHINE LEARNING", [
                 ("Unified Model Lab · benchmarking, validation & explainability", "pages/34_Advanced_ML_Explainability.py", "🤖"),
+                ("Conventional vs ML model comparison", "pages/38_Conventional_vs_ML_Comparison.py", "⚖️"),
             ]),
             ("06 · LONGITUDINAL & EMITTER ANALYSIS", [
                 ("Animal trajectories & repeated rounds", "pages/10_Longitudinal_Analysis.py", "📉"),

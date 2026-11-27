@@ -103,3 +103,5 @@ if nested is not None:
 
 
 st.page_link("pages/34_Advanced_ML_Explainability.py", label="Open the unified Model Lab", icon="🤖")
+
+st.page_link("pages/38_Conventional_vs_ML_Comparison.py", label="Compare ML models with conventional statistical models", icon="⚖️")

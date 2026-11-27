@@ -31,3 +31,7 @@ if st.button('Fit statistical model',type='primary'):
             st.warning(f'Coefficient table unavailable for this model result: {table_error}')
     except Exception as e: st.error(f'Model fitting failed: {e}')
 st.caption('Use OLS only when independence assumptions are defensible. GEE and mixed-effects models account for within-animal dependence under different estimands and assumptions.')
+
+
+st.divider()
+st.page_link("pages/38_Conventional_vs_ML_Comparison.py", label="Compare conventional models with machine learning", icon="⚖️")
