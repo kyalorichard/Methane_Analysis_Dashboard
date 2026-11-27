@@ -91,9 +91,20 @@ selected_models = selected_conventional + selected_ml
 with st.expander("Validation and tuning settings", expanded=True):
     v1, v2, v3 = st.columns(3)
     with v1:
-        folds = st.slider("Animal-grouped CV folds", 3, min(8, max(3, n_groups)),
-                          min(int(comparison_cfg.get("n_splits", 5)), max(3, n_groups)),
-                          key="cml_folds")
+        # Streamlit sliders require min_value < max_value. The comparison
+        # engine requires at least three folds and the page requires at least
+        # five independent groups before enabling a run. Avoid rendering an
+        # invalid 3-to-3 slider for datasets with fewer than four groups.
+        if n_groups >= 5:
+            max_folds = min(8, n_groups)
+            default_folds = max(3, min(int(comparison_cfg.get("n_splits", 5)), max_folds))
+            folds = st.slider(
+                "Animal-grouped CV folds", min_value=3, max_value=max_folds,
+                value=default_folds, key="cml_folds",
+            )
+        else:
+            folds = 3
+            st.caption("CV fold selection becomes available when at least five independent groups are present.")
     with v2:
         bootstrap = st.select_slider(
             "Paired group-bootstrap replicates", options=[200, 500, 1000, 2000, 5000],
