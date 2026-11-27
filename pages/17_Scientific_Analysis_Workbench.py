@@ -12,7 +12,7 @@ header("Scientific Analysis Workbench",
        "Advanced workflows: reliability, agreement, group inference, allometry, quantile regression, duration sensitivity, equivalence and clustering stability.")
 
 df=get_data().copy()
-roles=get_roles()
+roles=get_roles(df)
 animal=roles.get("animal_id")
 group=roles.get("breed")
 weight=roles.get("weight")

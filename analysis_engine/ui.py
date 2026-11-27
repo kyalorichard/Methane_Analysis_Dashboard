@@ -507,6 +507,10 @@ def render_workspace_context():
     persisted = bool(st.session_state.get("active_dataset_id"))
     dataset_state = "Saved project dataset" if persisted else ("Temporary session dataset" if dataset_name else "No dataset")
     st.caption(f"**Project:** {project_label}  ·  **Dataset:** {dataset_label}  ·  **Data state:** {dataset_state}")
+    qc_report = st.session_state.get("central_qc_report")
+    if qc_report:
+        sev = qc_report.get("severity_counts", {})
+        st.caption(f"**Last central QC run:** {sev.get('critical',0)} critical · {sev.get('high',0)} high · {sev.get('warning',0)} warnings · verify dataset fingerprint in the QC Centre")
 
 
 def header(title, subtitle, badge="ACTIVE DATASET"):
@@ -656,7 +660,8 @@ def render_sidebar_navigation():
                 ("Analysis history", "pages/26_Analysis_Run_History.py", "🕘"),
             ]),
             ("02 · DATA PREPARATION", [
-                ("Import, variable mapping & QC", "pages/01_Data_Management.py", "🧹"),
+                ("Data Quality & QC Centre", "pages/01_Data_Quality_QC_Centre.py", "🧹"),
+                ("Data import & variable mapping", "pages/01b_Data_Import_and_Mapping.py", "📥"),
                 ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
                 ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
                 ("Phenotype construction", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
@@ -670,9 +675,10 @@ def render_sidebar_navigation():
             ("04 · STATISTICAL INFERENCE", [
                 ("Statistical models & mixed effects", "pages/03_Statistical_Models.py", "📐"),
                 ("Reliability, repeatability & agreement", "pages/33_Reliability_and_Agreement.py", "📏"),
-                ("Phenotype validation", "pages/21_Phenotype_Validation.py", "✅"),
+                
                 ("Allometry & nonlinear inference", "pages/31_Advanced_Inference.py", "📈"),
                 ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
+                ("Phenotype validity analysis", "pages/21_Phenotype_Validation.py", "✅"),
             ]),
             ("05 · MACHINE LEARNING", [
                 ("Model benchmarking & nested validation", "pages/04_ML_Benchmarking.py", "🤖"),
@@ -723,7 +729,7 @@ def render_sidebar_navigation():
                 selected_project = opts[chosen]
                 previous_project = st.session_state.get("active_project_id")
                 if previous_project != selected_project["id"]:
-                    for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
+                    for state_key in ("data", "raw_data_snapshot", "data_name", "active_dataset_name", "roles", "dataset_profile", "active_dataset_id", "active_dataset_key", "cleaning_log", "central_qc_report", "central_qc_history", "central_qc_rules", "measurement_protocol", "protocol_instrument", "protocol_method", "protocol_units", "protocol_calibration", "protocol_ref", "protocol_min_duration", "forecast_series", "forecast_results", "ml_benchmark_results", "nested_ml_results", "cluster_metrics", "cluster_labels"):
                         st.session_state.pop(state_key, None)
                     st.session_state.pop("analysis_settings_scope_key", None)
                     st.session_state.pop("analysis_species_scope", None)
@@ -747,6 +753,7 @@ def render_sidebar_navigation():
             if selected_key != current:
                 item = catalogue[selected_key]
                 st.session_state["data"] = item["data"]
+                st.session_state.pop("central_qc_report", None)
                 st.session_state["raw_data_snapshot"] = item["data"].copy(deep=True)
                 st.session_state["cleaning_log"] = []
                 st.session_state["data_name"] = item["name"]

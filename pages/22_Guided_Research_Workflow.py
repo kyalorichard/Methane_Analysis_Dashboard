@@ -24,7 +24,7 @@ metric_row([
 
 steps=[
     ("01","Study setup and data import","Select species, import data, define project and document instrument, measurement method, units and calibration.","pages/28_Research_Intelligence.py","Open study setup",has_data),
-    ("02","Data profiling and quality control","Inspect missingness, duplicates, invalid values, recording duration and animal/session structure.","pages/01_Data_Management.py","Open data management",has_data),
+    ("02","Data profiling and quality control","Run centralised integrity, missingness, phenotype range, outlier and repeated-measure QC checks.","pages/01_Data_Quality_QC_Centre.py","Open Data Quality & QC Centre",has_data),
     ("03","Variable mapping and phenotype construction","Map animal ID, methane outcomes, covariates and sessions; document derived phenotype formulas.","pages/19_Custom_Phenotype_Builder.py","Build phenotypes",has_animal),
     ("04","Phenotype discovery and reliability","Evaluate distributions, repeatability, agreement, duration sensitivity and biological associations.","pages/21_Phenotype_Validation.py","Validate phenotypes",bool(st.session_state.get("phenotype_validation_results"))),
     ("05","Statistical inference","Use animal-aware group comparisons, mixed-effects models and robust inference where design supports them.","pages/03_Statistical_Models.py","Run statistical models",bool(st.session_state.get("statistical_model_results"))),

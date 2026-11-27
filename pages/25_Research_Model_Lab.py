@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from analysis_engine.ui import header, render_sidebar_navigation, empty_state
-from analysis_engine.research_hardening import grouped_classification_benchmark, fit_mixed_effects, configurable_qc
+from analysis_engine.research_hardening import grouped_classification_benchmark, fit_mixed_effects
 from platform_core.auth import require_principal
 
 st.set_page_config(page_title="Research model lab | Methane Phenotype Analytics",page_icon="🧬",layout="wide")
 require_principal(); render_sidebar_navigation()
-header("Research model lab","Animal-grouped classification, mixed-effects modelling and configurable quality-control rules.",badge="RESEARCH HARDENING")
+header("Research model lab","Animal-grouped classification and repeated-measures mixed-effects modelling.",badge="RESEARCH HARDENING")
 df=st.session_state.get("data")
 if df is None: empty_state("No active dataset","Load a dataset in Project Workspace."); st.stop()
 cols=df.columns.tolist(); numeric=df.select_dtypes(include="number").columns.tolist()
@@ -51,18 +51,5 @@ if "mixed_results" in st.session_state:
     for warning in summ.get("warnings", []):
         st.warning(warning)
     st.json(summ); st.dataframe(est,use_container_width=True,hide_index=True)
-st.divider(); st.subheader("3. Configurable phenotype QC")
-st.caption("Set study- or instrument-specific thresholds. These are user-defined screening rules, not universal biological reference intervals. Flags do not delete data.")
-qc_cols=st.multiselect("Variables to screen",numeric,default=numeric[:min(4,len(numeric))],key="qc_cols")
-rules={}
-for col in qc_cols:
-    with st.expander(f"QC limits: {col}"):
-        a,b=st.columns(2)
-        with a: lo=st.number_input(f"Minimum for {col}",value=float(pd.to_numeric(df[col],errors="coerce").min()) if df[col].notna().any() else 0.0,key=f"qcmin_{col}")
-        with b: hi=st.number_input(f"Maximum for {col}",value=float(pd.to_numeric(df[col],errors="coerce").max()) if df[col].notna().any() else 1.0,key=f"qcmax_{col}")
-        source=st.text_input(f"Threshold rationale for {col}",value="Study protocol / instrument specification",key=f"qcsrc_{col}")
-        if lo>hi: st.error("Minimum must not exceed maximum.")
-        else: rules[col]={"min":lo,"max":hi,"source":source}
-if st.button("Evaluate QC rules",key="run_qc"):
-    st.session_state["qc_results"]=configurable_qc(df,rules)
-if "qc_results" in st.session_state: st.dataframe(st.session_state["qc_results"],use_container_width=True,hide_index=True)
+st.divider()
+st.info("Dataset integrity, phenotype outlier screening and configurable range checks are centralised in Data Quality & QC Centre under Data Preparation. Model-specific cross-validation and convergence diagnostics remain in this research module.")

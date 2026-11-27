@@ -1,31 +1,22 @@
 import json
 import streamlit as st
 import pandas as pd
-from analysis_engine.research_methods import (dataset_validation_report, fit_random_slope_model,
+from analysis_engine.research_methods import (fit_random_slope_model,
     consensus_clustering, create_reproducibility_manifest)
 
 st.set_page_config(page_title='Research Diagnostics & Methods', page_icon='🧬', layout='wide')
 from analysis_engine.ui import render_sidebar_navigation
 render_sidebar_navigation()
 st.title('Research Diagnostics & Methods')
-st.caption('Advanced tools for dataset integrity, longitudinal modelling, phenotype clustering and reproducible research.')
+st.caption('Advanced longitudinal modelling, phenotype clustering and reproducible research methods.')
 if 'data' not in st.session_state:
     st.info('Load a dataset using the sidebar to access these workflows.')
     st.stop()
 df=st.session_state['data']
 
-st.header('1. Dataset integrity and quality checks')
-report=dataset_validation_report(df)
-c1,c2,c3,c4=st.columns(4)
-c1.metric('Records',f"{report['n_records']:,}")
-c2.metric('Variables',f"{report['n_variables']:,}")
-c3.metric('Duplicate rows',f"{report['duplicate_rows']:,}")
-c4.metric('Missing cells',f"{report['missing_cells']:,}")
-if report['issues']: st.warning(' · '.join(report['issues']))
-else: st.success('No structural integrity issues detected by these checks.')
-if report['nonfinite_numeric_values']: st.dataframe(pd.DataFrame([{'variable':k,'nonfinite_values':v} for k,v in report['nonfinite_numeric_values'].items()]),use_container_width=True)
+st.info("Dataset integrity and general QC checks are centralised in Data Quality & QC Centre under Data Preparation. This page retains model-specific longitudinal, clustering and provenance diagnostics.")
 
-st.divider(); st.header('2. Longitudinal mixed-effects modelling')
+st.divider(); st.header('1. Longitudinal mixed-effects modelling')
 numeric=list(df.select_dtypes(include='number').columns)
 allcols=list(df.columns)
 if len(numeric)>=2:
@@ -51,7 +42,7 @@ if len(numeric)>=2:
 else: st.info('At least two numeric variables are needed for this model.')
 st.caption('Random-slope models require repeated time measurements within independent animals/groups. Check convergence, singularity, time coding and the sampling hierarchy before interpretation.')
 
-st.divider(); st.header('3. Consensus clustering of animal phenotype profiles')
+st.divider(); st.header('2. Consensus clustering of animal phenotype profiles')
 if 'animal_id' in st.session_state.get('roles',{}) and st.session_state['roles'].get('animal_id'):
     animal=st.session_state['roles']['animal_id']
 else: animal=st.selectbox('Animal identifier',allcols,key='research_animal')
@@ -72,9 +63,9 @@ if st.session_state.get('research_consensus_assignments') is not None:
     st.download_button('Download consensus assignments',st.session_state['research_consensus_assignments'].to_csv(index=False),'consensus_cluster_assignments.csv','text/csv')
     st.caption('Consensus values represent the proportion of resamples in which two animal profiles co-clustered. Inspect the consensus matrix and sensitivity to cluster count/resampling settings.')
 
-st.divider(); st.header('4. Reproducibility and provenance manifest')
+st.divider(); st.header('3. Reproducibility and provenance manifest')
 analysis_name=st.text_input('Analysis name','Methane phenotype exploratory analysis')
 parameters={'active_species':st.session_state.get('species'), 'dataset_name':st.session_state.get('data_name'),
-            'analysis_modules_available':['random_slope_mixed_model','consensus_clustering','dataset_integrity']}
+            'analysis_modules_available':['random_slope_mixed_model','consensus_clustering']}
 manifest=create_reproducibility_manifest(df,analysis_name,parameters,st.session_state.get('data_name'))
 st.download_button('Download provenance manifest',json.dumps(manifest,indent=2,default=str),'analysis_provenance_manifest.json','application/json')

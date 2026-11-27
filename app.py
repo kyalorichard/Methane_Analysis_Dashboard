@@ -181,7 +181,7 @@ s4.metric("Non-finite numeric cells", f"{nonfinite:,}")
 q1, q2 = st.columns([1.2, 1])
 with q1:
     st.markdown("**Recommended next actions**")
-    st.page_link("pages/01_Data_Management.py", label="Review data quality and variable mapping", icon="🧹")
+    st.page_link("pages/01_Data_Quality_QC_Centre.py", label="Open Data Quality & QC Centre", icon="🧹")
     st.page_link("pages/16_Species_Protocol_Configuration.py", label="Confirm species and measurement protocol", icon="🐑")
     st.page_link("pages/33_Reliability_and_Agreement.py", label="Assess repeatability and measurement agreement", icon="📏")
     st.page_link("pages/34_Advanced_ML_Explainability.py", label="Run animal-grouped predictive validation", icon="🤖")

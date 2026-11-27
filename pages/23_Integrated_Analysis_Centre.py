@@ -173,7 +173,14 @@ if result:
     tabs=st.tabs(["Data quality","Descriptive results","Group analysis","Repeatability","Associations","ML benchmark","Run manifest"])
     tables=result["tables"]
     with tabs[0]:
-        st.dataframe(tables["quality_control"],use_container_width=True,hide_index=True)
+        central_qc = st.session_state.get("central_qc_report")
+        if central_qc:
+            st.caption(f"Central QC engine v{central_qc.get('engine_version')} · fingerprint {str(central_qc.get('dataset_fingerprint',''))[:16]}…")
+            st.metric("Central QC screening score", f"{central_qc.get('quality_screening_score', '—')}/100")
+            st.dataframe(pd.DataFrame(central_qc.get("findings", [])),use_container_width=True,hide_index=True)
+        else:
+            st.info("No central QC run is available in this session. Open Data Preparation → Data Quality & QC Centre to run the full QC workflow.")
+        st.subheader("Data dictionary")
         st.dataframe(tables["data_dictionary"],use_container_width=True,hide_index=True)
     with tabs[1]:
         st.json(summary["phenotype_distribution"])
