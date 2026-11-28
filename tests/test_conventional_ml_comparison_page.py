@@ -11,7 +11,7 @@ def test_conventional_vs_ml_comparison_page_is_registered_in_navigation():
     assert "oof_predictions" in source
     assert "GroupKFold" in (root / "analysis_engine" / "model_comparison.py").read_text(encoding="utf-8")
 
-    navigation = (root / "analysis_engine" / "ui.py").read_text(encoding="utf-8")
+    navigation = (root / "analysis_engine" / "navigation.py").read_text(encoding="utf-8")
     assert "pages/38_Conventional_vs_ML_Comparison.py" in navigation
 
 

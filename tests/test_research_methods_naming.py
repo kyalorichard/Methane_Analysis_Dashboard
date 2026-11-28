@@ -12,7 +12,7 @@ def test_research_methods_page_has_neutral_user_facing_name():
 
 
 def test_sidebar_uses_neutral_research_methods_label():
-    source = (ROOT / "analysis_engine" / "ui.py").read_text(encoding="utf-8").lower()
+    source = (ROOT / "analysis_engine" / "navigation.py").read_text(encoding="utf-8").lower()
     assert "research diagnostics & methods" in source
     assert "32_release_6" not in source
 

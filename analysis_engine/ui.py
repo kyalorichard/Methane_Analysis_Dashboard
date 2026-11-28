@@ -646,73 +646,13 @@ def progress_step(label, complete, detail=""):
 
 
 def render_sidebar_navigation():
-    """Render the eight-stage research workflow as the primary navigation."""
+    """Render canonical workflows first and retain older pages as specialist routes."""
+    from .navigation import PRIMARY_NAVIGATION_GROUPS, SPECIALIST_NAVIGATION_GROUP
+
     apply_style()
     with st.sidebar:
         st.markdown("<div class='brand-lockup'><div class='brand-mark'>M</div><div><div class='brand-name'>Methane Phenotype<br>Analytics</div><div class='brand-sub'>Research workspace</div></div></div>", unsafe_allow_html=True)
-        groups = [
-            ("01 · RESEARCH WORKSPACE", [
-                ("Research overview", "app.py", "🏠"),
-                ("Projects & datasets", "pages/00_Project_Workspace.py", "🗂️"),
-                ("Research overview & readiness", "pages/28_Research_Intelligence.py", "🧭"),
-                ("Guided research workflow", "pages/22_Guided_Research_Workflow.py", "🗺️"),
-                ("Integrated analysis centre", "pages/23_Integrated_Analysis_Centre.py", "🧪"),
-                ("Analysis history", "pages/26_Analysis_Run_History.py", "🕘"),
-            ]),
-            ("02 · DATA PREPARATION", [
-                ("Data Quality & QC Centre", "pages/01_Data_Quality_QC_Centre.py", "🧹"),
-                ("Data import & variable mapping", "pages/01b_Data_Import_and_Mapping.py", "📥"),
-                ("Data preparation studio", "pages/24_Data_Preparation_Studio.py", "🧽"),
-                ("Species & measurement protocol", "pages/16_Species_Protocol_Configuration.py", "🐑"),
-                ("Phenotype construction", "pages/19_Custom_Phenotype_Builder.py", "🧬"),
-            ]),
-            ("03 · PHENOTYPE DISCOVERY", [
-                ("Descriptive analysis & distributions", "pages/02_Descriptive_Analysis.py", "📊"),
-                ("Phenotype analysis", "pages/06_Phenotype_Analysis.py", "🔬"),
-                ("Group comparisons", "pages/08_Group_Comparisons.py", "⚖️"),
-                ("PCA & phenotype clustering", "pages/05_Clustering_PCA.py", "🧩"),
-            ]),
-            ("04 · STATISTICAL INFERENCE", [
-                ("Statistical models & mixed effects", "pages/03_Statistical_Models.py", "📐"),
-                ("Reliability, repeatability & agreement", "pages/33_Reliability_and_Agreement.py", "📏"),
-                
-                ("Allometry & nonlinear inference", "pages/31_Advanced_Inference.py", "📈"),
-                ("Equivalence analysis", "pages/13_Equivalence_Analysis.py", "↔️"),
-                ("Phenotype validity analysis", "pages/21_Phenotype_Validation.py", "✅"),
-            ]),
-            ("05 · MACHINE LEARNING", [
-                ("Unified Model Lab · benchmarking, validation & explainability", "pages/34_Advanced_ML_Explainability.py", "🤖"),
-                ("Conventional vs ML model comparison", "pages/38_Conventional_vs_ML_Comparison.py", "⚖️"),
-            ]),
-            ("06 · LONGITUDINAL & EMITTER ANALYSIS", [
-                ("Animal trajectories & repeated rounds", "pages/10_Longitudinal_Analysis.py", "📉"),
-                ("Emitter cohort classification", "pages/18_Low_High_Emitter_Reports.py", "↕️"),
-                ("Emitter persistence & transitions", "pages/20_Longitudinal_Emitter_Tracking.py", "🔁"),
-            ]),
-            ("07 · ADVANCED RESEARCH", [
-                ("Advanced research analytics", "pages/30_Advanced_Research_Analytics.py", "🧪"),
-                ("Sensitivity & robustness", "pages/12_Sensitivity_Robustness.py", "🛡️"),
-                ("Forecasting & time-series analysis", "pages/37_Time_Series_Forecasting.py", "📉"),
-                ("Multi-study harmonisation & meta-analysis", "pages/35_Multi_Study_Harmonisation_Meta_Analysis.py", "🌐"),
-                ("Research diagnostics & methods", "pages/32_Research_Diagnostics_and_Methods.py", "🧬"),
-                ("Analysis & model settings", "pages/36_Analysis_Model_Settings.py", "⚙️"),
-                ("Advanced scientific workbench", "pages/17_Scientific_Analysis_Workbench.py", "🧰"),
-                ("Advanced nonlinear analysis (legacy)", "pages/11_Advanced_Analysis.py", "🧮"),
-
-            ]),
-            ("08 · SCIENTIFIC REPORTING", [
-                ("Scientific publication & reporting suite", "pages/27_Scientific_Publication_Suite.py", "📚"),
-                ("Phenotype evidence scorecard", "pages/14_Phenotype_Scorecard.py", "🏅"),
-                ("Compare analysis runs", "pages/29_Analysis_Comparison.py", "🧾"),
-            ]),
-            ("SPECIALIST WORKFLOWS · ALL FEATURES RETAINED", [
-                ("Regression benchmarking", "pages/04_ML_Benchmarking.py", "📈"),
-                ("Research model lab · classification & mixed models", "pages/25_Research_Model_Lab.py", "🧬"),
-                ("Variable importance", "pages/09_Explainability.py", "🔎"),
-                ("Quick reports, tables & exports", "pages/15_Reports_Exports.py", "📄"),
-                ("Within-animal trajectory view", "pages/07_Repeatability_Reliability.py", "🔁"),
-            ]),
-        ]
+        groups = list(PRIMARY_NAVIGATION_GROUPS) + [SPECIALIST_NAVIGATION_GROUP]
         for i, (group, links) in enumerate(groups):
             with st.expander(group, expanded=(i == 0)):
                 for label, target, icon in links:
@@ -749,28 +689,7 @@ def render_sidebar_navigation():
             st.caption("Project selector unavailable; configure access in Projects & datasets.")
         catalogue = st.session_state.get("dataset_catalogue", {})
         if catalogue:
-            labels = {f"{item['name']} · {item['species'].title()}": key for key, item in catalogue.items()}
-            current = st.session_state.get("active_dataset_key"); label_list = list(labels)
-            default = next((label for label, key in labels.items() if key == current), label_list[0])
-            choice = st.selectbox("Switch dataset", label_list, index=label_list.index(default), key="shared_dataset_switch")
-            selected_key = labels[choice]
-            if selected_key != current:
-                item = catalogue[selected_key]
-                st.session_state["data"] = item["data"]
-                st.session_state.pop("central_qc_report", None)
-                st.session_state["raw_data_snapshot"] = item["data"].copy(deep=True)
-                st.session_state["cleaning_log"] = []
-                st.session_state["data_name"] = item["name"]
-                st.session_state["active_dataset_name"] = item["name"]
-                st.session_state["species"] = item["species"]
-                from .io import infer_roles
-                st.session_state["roles"] = infer_roles(item["data"])
-                st.session_state["active_dataset_key"] = selected_key
-                st.rerun()
-        else:
-            st.info("No active dataset. Open Overview to import data.")
-
-
+            st.caption(f"{len(catalogue)} dataset(s) available in the current session")
 
 
 def render_workflow_shortcuts(title: str, links: list[tuple[str, str, str]]):

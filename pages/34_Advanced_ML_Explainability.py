@@ -21,12 +21,16 @@ from analysis_engine.service_registry import get_service
 
 render_sidebar_navigation()
 header("Unified Research Model Lab", "Integrated workflows for regression prediction, phenotype classification, model validation, explainability and independent-cohort assessment.")
-from analysis_engine.ui import render_workflow_shortcuts
-render_workflow_shortcuts("Model Lab workflows", [
-    ("Regression benchmarking", "pages/04_ML_Benchmarking.py", "📈"),
-    ("Classification & mixed models", "pages/25_Research_Model_Lab.py", "🧬"),
-    ("Variable importance", "pages/09_Explainability.py", "🔎"),
-])
+st.page_link(
+    "pages/38_Conventional_vs_ML_Comparison.py",
+    label="Open matched conventional-versus-ML comparison",
+    icon="⚖️",
+)
+st.page_link(
+    "pages/09_Explainability.py",
+    label="Open held-out permutation importance (specialist method)",
+    icon="🔎",
+)
 st.divider()
 cfg=load_active_settings(st.session_state); comparison_cfg=cfg.get("comparison", {})
 df=get_data(); roles=get_roles(df); nums=numeric_cols(df)
@@ -71,7 +75,62 @@ st.caption("Choose a workflow based on the research question. The dataset, targe
 regression_tab, classification_tab, validation_tab = st.tabs(["1 · Regression & phenotype prediction", "2 · Classification & phenotype identification", "3 · Model validation & interpretation"])
 
 with regression_tab:
-    st.subheader("1. Grouped learning curves")
+    st.subheader("1. Animal-grouped regression benchmarking")
+    st.caption("Benchmark regression algorithms on the same animal-grouped folds. Preprocessing is fitted inside each training fold; these are internal validation estimates.")
+    regression_models = list(REGRESSORS)
+    regression_selection = st.multiselect(
+        "Regression algorithms", regression_models,
+        default=[m for m in ["Ridge", "Random Forest", "Extra Trees"] if m in regression_models],
+        key="model_lab_regression_models",
+    )
+    regression_folds = st.slider("Grouped cross-validation folds", 2, 10,
+        min(5, max(2, int(comparison_cfg.get("n_splits", 5)))), key="model_lab_regression_folds")
+    if st.button("Run grouped regression benchmark", type="primary", key="model_lab_run_regression",
+                  disabled=not regression_selection):
+        try:
+            result = get_service("grouped_regression")(
+                df, outcome, features, animal, regression_folds,
+                selected_models=regression_selection, settings=cfg,
+            )
+            st.session_state["ml_benchmark_results"] = result
+            st.session_state["ml_benchmark_selection"] = regression_selection
+        except Exception as exc:
+            st.error(f"Grouped regression benchmark failed: {exc}")
+    regression_result = st.session_state.get("ml_benchmark_results")
+    if regression_result is not None:
+        st.dataframe(regression_result, use_container_width=True, hide_index=True)
+        st.download_button("Download grouped regression metrics",
+            regression_result.to_csv(index=False).encode("utf-8"),
+            "grouped_ml_benchmark.csv", "text/csv", key="model_lab_download_regression")
+        st.caption("Compare models using the same folds, predictor set and grouping unit. Report fold-level variability and the number of independent groups.")
+
+    with st.expander("Nested animal-grouped regression validation", expanded=False):
+        st.caption("Hyperparameter selection occurs inside each outer training fold. Outer folds estimate generalisation performance; this is more computationally intensive than the standard benchmark.")
+        outer_folds = st.slider("Outer validation folds", 3, 8, 5, key="model_lab_outer_folds")
+        inner_folds = st.slider("Inner tuning folds", 2, 5, 3, key="model_lab_inner_folds")
+        nested_models = st.multiselect("Models for nested regression", regression_models,
+            default=[m for m in ["Ridge", "Random Forest", "Extra Trees"] if m in regression_models],
+            key="model_lab_nested_regression_models")
+        if st.button("Run nested grouped regression", key="model_lab_run_nested_regression",
+                      disabled=not nested_models):
+            try:
+                nested_result = get_service("nested_grouped_regression")(
+                    df, outcome, features, animal, outer_splits=outer_folds,
+                    inner_splits=inner_folds, selected_models=nested_models, settings=cfg,
+                )
+                st.session_state["nested_ml_results"] = nested_result
+            except Exception as exc:
+                st.error(f"Nested grouped regression failed: {exc}")
+        nested_result = st.session_state.get("nested_ml_results")
+        if nested_result is not None:
+            st.dataframe(nested_result, use_container_width=True, hide_index=True)
+            st.download_button("Download nested regression metrics",
+                nested_result.to_csv(index=False).encode("utf-8"),
+                "nested_grouped_ml_benchmark.csv", "text/csv", key="model_lab_download_nested_regression")
+            st.warning("Small numbers of animals, unequal group sizes and limited independent test groups can make outer-fold estimates uncertain.")
+
+    st.divider()
+    st.subheader("3. Grouped learning curves")
     curve_model=st.selectbox("Learning-curve estimator",list(REGRESSORS),index=list(REGRESSORS).index("Extra Trees") if "Extra Trees" in REGRESSORS else 0)
     curve_folds=st.slider("Grouped folds",2,8,int(comparison_cfg.get("n_splits",5)),key="r62_curve_folds")
     if st.button("Calculate grouped learning curve",key="r62_curve_run"):

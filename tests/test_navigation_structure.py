@@ -1,34 +1,33 @@
 from pathlib import Path
-import re
+
+from analysis_engine.navigation import (
+    PRIMARY_NAVIGATION_GROUPS, SPECIALIST_NAVIGATION_GROUP, navigation_targets,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_sidebar_uses_exactly_eight_research_workflow_sections():
-    source = (ROOT / "analysis_engine" / "ui.py").read_text(encoding="utf-8")
+def test_sidebar_uses_eight_research_workflow_sections():
     expected = [
-        "01 · RESEARCH WORKSPACE",
-        "02 · DATA PREPARATION",
-        "03 · PHENOTYPE DISCOVERY",
-        "04 · STATISTICAL INFERENCE",
-        "05 · MACHINE LEARNING",
-        "06 · LONGITUDINAL & EMITTER ANALYSIS",
-        "07 · ADVANCED RESEARCH",
-        "08 · SCIENTIFIC REPORTING",
+        "01 · RESEARCH WORKSPACE", "02 · DATA PREPARATION",
+        "03 · PHENOTYPE DISCOVERY", "04 · STATISTICAL INFERENCE",
+        "05 · MACHINE LEARNING", "06 · LONGITUDINAL & EMITTER ANALYSIS",
+        "07 · ADVANCED RESEARCH", "08 · SCIENTIFIC REPORTING",
     ]
-    for section in expected:
-        assert section in source
+    assert [name for name, _ in PRIMARY_NAVIGATION_GROUPS] == expected
 
 
-def test_every_streamlit_page_has_one_primary_navigation_entry():
-    source = (ROOT / "analysis_engine" / "ui.py").read_text(encoding="utf-8")
-    start = source.index("def render_sidebar_navigation():")
-    end = source.index("\n        st.divider()\n        st.markdown(\"<div class='section-kicker'>Active project</div>\"", start)
-    nav = source[start:end]
-    targets = re.findall(r'\("[^\"]+",\s*"(pages/[^\"]+\.py|app\.py)"', nav)
-    assert len(targets) == len(set(targets)), "A page is exposed more than once in primary navigation"
+def test_every_page_is_reachable_exactly_once_across_primary_and_specialist_navigation():
+    targets = navigation_targets()
+    assert len(targets) == len(set(targets))
     expected_pages = {f"pages/{p.name}" for p in (ROOT / "pages").glob("*.py")}
     assert set(targets) == expected_pages | {"app.py"}
+
+
+def test_specialist_routes_are_not_in_primary_navigation():
+    primary = set(navigation_targets(include_specialist=False))
+    specialist = {target for _, target, _ in SPECIALIST_NAVIGATION_GROUP[1]}
+    assert primary.isdisjoint(specialist)
 
 
 def test_pages_32_and_33_render_the_shared_navigation():
